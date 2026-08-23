@@ -3,7 +3,6 @@ import "./globals.css";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
 import PathnameLoader from "@/components/PathnameLoader";
-import MagneticCursor from "@/components/MagneticCursor";
 import SmoothScroll from "@/components/SmoothScroll";
 import PageTransition from "@/components/PageTransition";
 import { getSiteUrl } from "@/lib/config";
@@ -69,7 +68,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body suppressHydrationWarning>
         <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
-        <MagneticCursor />
         <SmoothScroll>
           <a href="#main-content" className="skip-to-content">Skip to content</a>
           <PathnameLoader />

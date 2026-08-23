@@ -1,20 +1,12 @@
 "use client";
 
 import { useState, useEffect, useMemo } from "react";
+import { slugifyHeading } from "@/lib/slugify";
 
 interface TocEntry {
   id: string;
   text: string;
   level: number;
-}
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .trim();
 }
 
 function extractHeadings(content: string): TocEntry[] {
@@ -26,7 +18,7 @@ function extractHeadings(content: string): TocEntry[] {
     if (match) {
       const level = match[1].length;
       const text = match[2].replace(/[*_`~\[\]()]/g, "").trim();
-      const base = slugify(text);
+      const base = slugifyHeading(text);
       const count = seen.get(base) || 0;
       seen.set(base, count + 1);
       const id = count === 0 ? base : `${base}-${count + 1}`;
