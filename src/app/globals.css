@@ -159,24 +159,6 @@ body.dark .navbar-scrolled {
     inset 0 0.5px 0 rgba(255,255,255,0.05);
 }
 
-/* Hide native cursor — magnetic cursor handles it */
-@media (hover: hover) and (pointer: fine) {
-  body:not(.cursor-free) * { cursor: none !important; }
-}
-
-/* Hide magnetic cursor on touch devices — native cursor stays visible */
-@media (hover: none), (pointer: coarse) {
-  body > div[aria-hidden="true"] { display: none !important; }
-}
-
-/* GPU-accelerated cursor element — force compositing layer */
-.magnetic-cursor {
-  will-change: transform, opacity;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
 /* Footer */
 .footer {
   border-top: 1px solid var(--border);
