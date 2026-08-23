@@ -1,29 +1,33 @@
 "use client";
 
 import { useState, useRef } from "react";
+import type { Article } from "@/types";
 
 interface ArticleEditorProps {
+  article?: Article;
   onSaved: () => void;
   onCancel: () => void;
 }
 
-export default function ArticleEditor({ onSaved, onCancel }: ArticleEditorProps) {
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [content, setContent] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [category, setCategory] = useState("");
-  const [tags, setTags] = useState("");
-  const [mood, setMood] = useState("");
-  const [series, setSeries] = useState("");
-  const [published, setPublished] = useState(false);
-  const [coverImage, setCoverImage] = useState("");
+export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEditorProps) {
+  const [title, setTitle] = useState(article?.title || "");
+  const [slug, setSlug] = useState(article?.slug || "");
+  const [content, setContent] = useState(article?.content || "");
+  const [excerpt, setExcerpt] = useState(article?.excerpt || "");
+  const [category, setCategory] = useState(article?.category || "");
+  const [tags, setTags] = useState(article?.tags?.join(", ") || "");
+  const [mood, setMood] = useState(article?.mood || "");
+  const [series, setSeries] = useState(article?.series || "");
+  const [published, setPublished] = useState(article?.published ?? false);
+  const [coverImage, setCoverImage] = useState(article?.cover_image || "");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const contentImageRef = useRef<HTMLInputElement>(null);
+
+  const isEditing = !!article;
 
   const generateSlug = (text: string) => {
     return text
@@ -35,7 +39,7 @@ export default function ArticleEditor({ onSaved, onCancel }: ArticleEditorProps)
 
   const handleTitleChange = (value: string) => {
     setTitle(value);
-    if (!slug || slug === generateSlug(title)) {
+    if (!isEditing && (!slug || slug === generateSlug(title))) {
       setSlug(generateSlug(value));
     }
   };
@@ -94,21 +98,26 @@ export default function ArticleEditor({ onSaved, onCancel }: ArticleEditorProps)
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean);
-      const res = await fetch("/api/articles", {
-        method: "POST",
+      const body = {
+        title: title.trim(),
+        slug: slug.trim(),
+        content: content.trim(),
+        excerpt: excerpt.trim() || content.trim().slice(0, 200),
+        category: category.trim(),
+        published,
+        cover_image: coverImage || undefined,
+        tags: tagList.length > 0 ? tagList : undefined,
+        mood: mood || undefined,
+        series: series || undefined,
+      };
+
+      const url = isEditing ? `/api/articles?slug=${article.slug}` : "/api/articles";
+      const method = isEditing ? "PUT" : "POST";
+
+      const res = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          title: title.trim(),
-          slug: slug.trim(),
-          content: content.trim(),
-          excerpt: excerpt.trim() || content.trim().slice(0, 200),
-          category: category.trim(),
-          published,
-          cover_image: coverImage || undefined,
-          tags: tagList.length > 0 ? tagList : undefined,
-          mood: mood || undefined,
-          series: series || undefined,
-        }),
+        body: JSON.stringify(body),
       });
       if (res.ok) {
         onSaved();
@@ -148,7 +157,7 @@ export default function ArticleEditor({ onSaved, onCancel }: ArticleEditorProps)
       }}
     >
       <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text)", marginBottom: "0.25rem" }}>
-        Write Article
+        {isEditing ? "Edit Article" : "Write Article"}
       </h2>
 
       <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "0.75rem" }}>

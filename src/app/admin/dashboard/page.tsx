@@ -11,6 +11,7 @@ export default function AdminDashboard() {
   const [articles, setArticles] = useState<Article[]>([]);
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"list" | "journal" | "article">("list");
+  const [editingArticle, setEditingArticle] = useState<Article | null>(null);
   const [journalDate, setJournalDate] = useState("");
   const [journalTime, setJournalTime] = useState("");
   const [journalContent, setJournalContent] = useState("");
@@ -110,9 +111,15 @@ export default function AdminDashboard() {
   };
 
   const handleArticleSaved = () => {
-    setSuccessMsg("Article saved!");
+    setSuccessMsg(editingArticle ? "Article updated!" : "Article saved!");
     setMode("list");
+    setEditingArticle(null);
     loadArticles();
+  };
+
+  const handleEdit = (article: Article) => {
+    setEditingArticle(article);
+    setMode("article");
   };
 
   const handleDelete = async (id: string) => {
@@ -154,13 +161,16 @@ export default function AdminDashboard() {
               }} className="btn-secondary" style={{ fontSize: "0.82rem", padding: "0.6rem 1.25rem" }}>
                 Journal
               </button>
-              <button onClick={() => setMode("article")} className="btn-primary" style={{ fontSize: "0.82rem", padding: "0.6rem 1.25rem" }}>
+              <button onClick={() => {
+                setEditingArticle(null);
+                setMode("article");
+              }} className="btn-primary" style={{ fontSize: "0.82rem", padding: "0.6rem 1.25rem" }}>
                 Write Article
               </button>
             </>
           )}
           {mode !== "list" && (
-            <button onClick={() => setMode("list")} className="btn-secondary" style={{ fontSize: "0.82rem", padding: "0.6rem 1.25rem" }}>
+            <button onClick={() => { setMode("list"); setEditingArticle(null); }} className="btn-secondary" style={{ fontSize: "0.82rem", padding: "0.6rem 1.25rem" }}>
               Back
             </button>
           )}
@@ -178,7 +188,7 @@ export default function AdminDashboard() {
 
       {/* Article Editor */}
       {mode === "article" && (
-        <ArticleEditor onSaved={handleArticleSaved} onCancel={() => setMode("list")} />
+        <ArticleEditor article={editingArticle || undefined} onSaved={handleArticleSaved} onCancel={() => { setMode("list"); setEditingArticle(null); }} />
       )}
 
       {/* Journal Writer */}
@@ -266,6 +276,7 @@ export default function AdminDashboard() {
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: "0.4rem", flexShrink: 0, marginLeft: "1rem" }}>
+                  <button onClick={() => handleEdit(article)} className="btn-secondary" style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem" }}>Edit</button>
                   <Link href={`/blog/${article.slug}`} target="_blank" className="btn-secondary" style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem" }}>View</Link>
                   <button onClick={() => handleDelete(article.id)} style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem", borderRadius: "980px", border: "1px solid #fecaca", background: "transparent", color: "#ef4444", cursor: "pointer" }}>Delete</button>
                 </div>
