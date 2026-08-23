@@ -98,7 +98,8 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
         .split(",")
         .map((t) => t.trim())
         .filter(Boolean);
-      const body = {
+      const payload = {
+        ...(isEditing ? { id: article.id } : {}),
         title: title.trim(),
         slug: slug.trim(),
         content: content.trim(),
@@ -111,13 +112,10 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
         series: series || undefined,
       };
 
-      const url = isEditing ? `/api/articles?slug=${article.slug}` : "/api/articles";
-      const method = isEditing ? "PUT" : "POST";
-
-      const res = await fetch(url, {
-        method,
+      const res = await fetch("/api/articles", {
+        method: isEditing ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
+        body: JSON.stringify(payload),
       });
       if (res.ok) {
         onSaved();

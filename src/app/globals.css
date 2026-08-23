@@ -56,6 +56,12 @@ body.dark {
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+html {
+  /* GPU-accelerated scrolling — force compositing for Lenis */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: auto;
+}
+
 body {
   background: var(--bg);
   color: var(--text);
@@ -65,13 +71,17 @@ body {
   -moz-osx-font-smoothing: grayscale;
   transition: background 0.3s ease, color 0.3s ease;
   overflow-x: hidden;
+  /* GPU layer for smooth scroll + transforms */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 a { color: inherit; text-decoration: none; }
 
 ::selection { background: var(--text); color: var(--bg); }
 
-/* Apple-style spring animations */
+/* Apple-style spring animations — GPU-composited */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(24px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
@@ -94,6 +104,10 @@ a { color: inherit; text-decoration: none; }
 
 .animate-in {
   animation: fadeUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .animate-in-delay-1 { animation-delay: 0.1s; }
@@ -109,9 +123,13 @@ a { color: inherit; text-decoration: none; }
   padding: 0 2rem;
 }
 
-/* Navbar — iOS Liquid Glass */
+/* Navbar — iOS Liquid Glass (GPU-composited) */
 .navbar-idle {
   background: transparent;
+  will-change: backdrop-filter, background;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .navbar-scrolled {
@@ -124,6 +142,10 @@ a { color: inherit; text-decoration: none; }
     0 1px 3px rgba(0,0,0,0.04),
     0 8px 32px rgba(0,0,0,0.04),
     inset 0 0.5px 0 rgba(255,255,255,0.15);
+  will-change: backdrop-filter, background, box-shadow;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 body.dark .navbar-scrolled {
@@ -177,10 +199,14 @@ body.dark .navbar-scrolled {
 
 .footer-link:hover { color: var(--text); }
 
-/* Prose — Apple Books-inspired reading */
+/* Prose — Apple Books-inspired reading, GPU-composited */
 .prose {
   max-width: 640px;
   margin: 0 auto;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .prose h1 {
@@ -267,6 +293,10 @@ body.dark .navbar-scrolled {
   border-radius: var(--radius);
   margin: 2rem 0;
   width: 100%;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .prose img.blog-image-left {
@@ -307,17 +337,22 @@ body.dark .navbar-scrolled {
   margin: 3rem 0;
 }
 
-/* Cards */
+/* Cards — GPU-accelerated hover */
 .card-hover {
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.35s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.35s ease;
+  will-change: transform, box-shadow;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .card-hover:hover {
   border-color: var(--border-hover);
   box-shadow: var(--shadow);
+  transform: translateZ(0) translateY(-2px);
 }
 
-/* Buttons — compact pill style */
+/* Buttons — compact pill style, GPU-composited */
 .btn-primary {
   display: inline-flex;
   align-items: center;
@@ -329,14 +364,22 @@ body.dark .navbar-scrolled {
   font-size: 0.78rem;
   font-weight: 600;
   letter-spacing: -0.01em;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
   cursor: pointer;
   border: none;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .btn-primary:hover {
   opacity: 0.85;
-  transform: translateY(-1px);
+  transform: translateZ(0) translateY(-1px);
+}
+
+.btn-primary:active {
+  transform: translateZ(0) scale(0.97);
 }
 
 .btn-secondary {
@@ -350,16 +393,25 @@ body.dark .navbar-scrolled {
   color: var(--text);
   font-size: 0.78rem;
   font-weight: 500;
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), background 0.3s ease, border-color 0.3s ease;
   cursor: pointer;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .btn-secondary:hover {
   border-color: var(--border-hover);
   background: var(--bg-secondary);
+  transform: translateZ(0) translateY(-1px);
 }
 
-/* Tag pill */
+.btn-secondary:active {
+  transform: translateZ(0) scale(0.97);
+}
+
+/* Tag pill — GPU-composited */
 .tag {
   display: inline-block;
   padding: 0.25rem 0.7rem;
@@ -372,6 +424,8 @@ body.dark .navbar-scrolled {
   text-transform: lowercase;
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
+  will-change: transform;
+  transform: translateZ(0);
 }
 
 /* Status dot */
@@ -383,7 +437,7 @@ body.dark .navbar-scrolled {
   box-shadow: 0 0 0 2px color-mix(in srgb, #30d158 20%, transparent);
 }
 
-/* Share Buttons */
+/* Share Buttons — GPU-composited */
 .share-btn {
   display: inline-flex;
   align-items: center;
@@ -395,13 +449,22 @@ body.dark .navbar-scrolled {
   background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .share-btn:hover {
   border-color: var(--border-hover);
   background: var(--bg-secondary);
   color: var(--text);
+  transform: translateZ(0) scale(1.08);
+}
+
+.share-btn:active {
+  transform: translateZ(0) scale(0.95);
 }
 
 /* Input focus */
@@ -429,7 +492,7 @@ input:focus {
   top: 1rem;
 }
 
-/* Back to Top */
+/* Back to Top — GPU-composited */
 .back-to-top {
   position: fixed;
   bottom: 2rem;
@@ -446,27 +509,35 @@ input:focus {
   justify-content: center;
   z-index: 100;
   box-shadow: var(--shadow);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease, border-color 0.3s ease;
   animation: fadeIn 0.3s ease;
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .back-to-top:hover {
-  transform: translateY(-2px);
+  transform: translateZ(0) translateY(-2px);
   box-shadow: var(--shadow-lg);
   border-color: var(--border-hover);
 }
 
-.back-to-top:active { transform: scale(0.92); }
+.back-to-top:active { transform: translateZ(0) scale(0.92); }
 
-/* Table of Contents */
+/* Table of Contents — GPU-composited */
 .toc {
   position: sticky;
   top: 100px;
   padding: 1rem 0;
   max-height: calc(100vh - 120px);
   overflow-y: auto;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .article-toc-wrapper {
@@ -474,12 +545,16 @@ input:focus {
   flex-shrink: 0;
 }
 
-/* Code Blocks */
+/* Code Blocks — GPU-composited */
 .code-block {
   margin: 1.75rem 0;
   border-radius: var(--radius-sm);
   overflow: hidden;
   border: 1px solid var(--border);
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .code-block-header {

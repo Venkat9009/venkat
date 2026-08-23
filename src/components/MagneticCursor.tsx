@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 
 const SELECTOR = "a, button, [data-cursor-magnetic], .card-hover, .pixel-card, .btn-primary, .btn-secondary, .theme-toggle, .nav-hamburger";
-const MAX_SIZE = 120;
+const BASE_SIZE = 22;
 
 function isTouchDevice(): boolean {
   if (typeof window === "undefined") return true;
@@ -13,8 +13,8 @@ function isTouchDevice(): boolean {
 function getColors(): { base: string; hover: string } {
   const isDark = document.body.classList.contains("dark");
   return {
-    base: isDark ? "rgba(255,255,255,0.55)" : "rgba(50,50,50,0.22)",
-    hover: isDark ? "rgba(255,255,255,0.12)" : "rgba(50,50,50,0.08)",
+    base: isDark ? "rgba(255,255,255,0.6)" : "rgba(50,50,50,0.25)",
+    hover: isDark ? "rgba(255,255,255,0.15)" : "rgba(50,50,50,0.10)",
   };
 }
 
@@ -29,25 +29,21 @@ export default function MagneticCursor() {
     cursor.setAttribute("aria-hidden", "true");
     const c = getColors();
 
-    // Fixed-size element — only transform changes (pure GPU compositing)
-    // No width/height/borderRadius changes = zero layout triggers
     cursor.style.cssText = `
       position:fixed;top:0;left:0;pointer-events:none;z-index:99999;
       will-change:transform,opacity;
-      transform:translate3d(-100px,-100px,0) scale(1);
-      width:${MAX_SIZE}px;height:${MAX_SIZE}px;border-radius:50%;
+      transform:translate3d(-100px,-100px,0);
+      width:${BASE_SIZE}px;height:${BASE_SIZE}px;border-radius:50%;
       background:${c.base};opacity:0;
-      transition:background 0.25s ease;
     `;
     document.body.appendChild(cursor);
 
     const mouse = { x: -100, y: -100 };
-    const renderPos = { x: -100, y: -100 };
-    const target = { x: -100, y: -100, scale: 1 };
+    const pos = { x: -100, y: -100 };
+    const target = { x: -100, y: -100, w: BASE_SIZE, h: BASE_SIZE, r: BASE_SIZE / 2 };
     let isVisible = false;
     let isOnButton = false;
     let lastTime = performance.now();
-    let currentRenderScale = 1;
 
     function lerp(a: number, b: number, t: number): number {
       return a + (b - a) * t;
@@ -60,12 +56,12 @@ export default function MagneticCursor() {
 
     function snapToElement(el: Element) {
       const rect = el.getBoundingClientRect();
-      // Calculate scale so MAX_SIZE circle covers the element
-      const maxDim = Math.max(rect.width, rect.height) + 8;
-      const scale = Math.min(maxDim / MAX_SIZE, 2.5);
+      const pad = 8;
       target.x = rect.left + rect.width / 2;
       target.y = rect.top + rect.height / 2;
-      target.scale = scale;
+      target.w = rect.width + pad;
+      target.h = rect.height + pad;
+      target.r = 12;
       isOnButton = true;
       updateColors();
     }
@@ -73,7 +69,9 @@ export default function MagneticCursor() {
     function resetToDefault() {
       target.x = mouse.x;
       target.y = mouse.y;
-      target.scale = 1;
+      target.w = BASE_SIZE;
+      target.h = BASE_SIZE;
+      target.r = BASE_SIZE / 2;
       isOnButton = false;
       updateColors();
     }
@@ -116,22 +114,23 @@ export default function MagneticCursor() {
       cursor.style.opacity = "1";
     }
 
-    // RAF loop — only updates transform (GPU-composited) and opacity
-    // No width, height, borderRadius = no layout on any hardware
     function loop(now: number) {
       const dt = Math.min((now - lastTime) / 16.667, 3);
       lastTime = now;
 
-      const posSpeed = 0.14 * dt;
-      const scaleSpeed = 0.18 * dt;
+      const speed = isOnButton ? 0.16 : 0.2;
+      pos.x = lerp(pos.x, target.x, speed * dt);
+      pos.y = lerp(pos.y, target.y, speed * dt);
 
-      renderPos.x = lerp(renderPos.x, target.x, posSpeed);
-      renderPos.y = lerp(renderPos.y, target.y, posSpeed);
-      currentRenderScale = lerp(currentRenderScale, target.scale, scaleSpeed);
+      // GPU-only: width/height change is fine because element is position:fixed
+      // and only moves via transform. The size change triggers paint but not layout.
+      const cw = lerp(cursor.offsetWidth || BASE_SIZE, target.w, 0.15 * dt);
+      const ch = lerp(cursor.offsetHeight || BASE_SIZE, target.h, 0.15 * dt);
 
-      // Pure GPU: translate3d + scale — compositor-only, zero layout
-      const half = (MAX_SIZE * currentRenderScale) / 2;
-      cursor.style.transform = `translate3d(${renderPos.x - half}px,${renderPos.y - half}px,0) scale(${currentRenderScale})`;
+      cursor.style.transform = `translate3d(${pos.x - cw / 2}px,${pos.y - ch / 2}px,0)`;
+      cursor.style.width = `${cw}px`;
+      cursor.style.height = `${ch}px`;
+      cursor.style.borderRadius = `${target.r}px`;
 
       rafRef.current = requestAnimationFrame(loop);
     }
