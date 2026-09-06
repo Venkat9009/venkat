@@ -33,6 +33,11 @@ export const metadata: Metadata = {
       "application/rss+xml": [{ url: "/rss.xml", title: "Venkat RSS Feed" }],
     },
   },
+  icons: {
+    icon: "/profile.jpg",
+    shortcut: "/profile.jpg",
+    apple: "/profile.jpg",
+  },
 };
 
 function Footer() {
