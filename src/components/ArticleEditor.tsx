@@ -23,6 +23,7 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [showOptional, setShowOptional] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
   const contentImageRef = useRef<HTMLInputElement>(null);
@@ -158,7 +159,7 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
         {isEditing ? "Edit Article" : "Write Article"}
       </h2>
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: "0.75rem" }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
         <div>
           <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Title</label>
           <input type="text" value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="My new article" style={inputStyle} />
@@ -169,24 +170,36 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
         </div>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: "0.75rem" }}>
-        <div>
-          <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Category</label>
-          <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="tech, tutorial, etc." style={inputStyle} />
-        </div>
-        <div>
-          <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Tags (comma-separated)</label>
-          <input type="text" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="react, nextjs, css" style={inputStyle} />
-        </div>
-        <div>
-          <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Series (optional)</label>
-          <input type="text" value={series} onChange={(e) => setSeries(e.target.value)} placeholder="e.g. React Fundamentals" style={inputStyle} />
-        </div>
-        <div>
-          <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Mood</label>
-          <input type="text" value={mood} onChange={(e) => setMood(e.target.value)} placeholder="happy, focused, etc." style={inputStyle} />
-        </div>
+      <div>
+        <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Category</label>
+        <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="tech, tutorial, etc." style={inputStyle} />
       </div>
+
+      {/* Optional fields toggle */}
+      <button
+        type="button"
+        onClick={() => setShowOptional(!showOptional)}
+        style={{ fontSize: "0.78rem", color: "var(--text-tertiary)", background: "none", border: "none", cursor: "pointer", textAlign: "left", padding: "0.25rem 0" }}
+      >
+        {showOptional ? "Hide" : "Show"} optional fields (tags, mood, series) {showOptional ? "▲" : "▼"}
+      </button>
+
+      {showOptional && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem", animation: "fadeIn 0.2s ease" }}>
+          <div>
+            <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Tags</label>
+            <input type="text" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="react, nextjs" style={inputStyle} />
+          </div>
+          <div>
+            <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Mood</label>
+            <input type="text" value={mood} onChange={(e) => setMood(e.target.value)} placeholder="happy, focused" style={inputStyle} />
+          </div>
+          <div>
+            <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Series</label>
+            <input type="text" value={series} onChange={(e) => setSeries(e.target.value)} placeholder="React Fundamentals" style={inputStyle} />
+          </div>
+        </div>
+      )}
 
       <div>
         <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Excerpt (optional)</label>

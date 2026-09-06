@@ -12,8 +12,6 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<"list" | "journal" | "article">("list");
   const [editingArticle, setEditingArticle] = useState<Article | null>(null);
-  const [journalDate, setJournalDate] = useState("");
-  const [journalTime, setJournalTime] = useState("");
   const [journalContent, setJournalContent] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -82,10 +80,9 @@ export default function AdminDashboard() {
     setSaving(true);
     try {
       const now = new Date();
-      const dateStr = journalDate || now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-      const timeStr = journalTime || now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+      const dateStr = now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
       const slug = dateStr.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/-+$/, "") + "-" + Date.now();
-      const contentWithTime = `**${timeStr}**\n\n${journalContent.trim()}`;
+      const contentWithTime = journalContent.trim();
       const res = await fetch("/api/articles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -100,8 +97,6 @@ export default function AdminDashboard() {
       });
       if (res.ok) {
         setSuccessMsg("Journal entry saved!");
-        setJournalDate("");
-        setJournalTime("");
         setJournalContent("");
         setMode("list");
         loadArticles();
@@ -134,18 +129,6 @@ export default function AdminDashboard() {
     router.push("/admin/login");
   };
 
-  const inputStyle = {
-    padding: "0.6rem 0",
-    border: "none",
-    background: "transparent",
-    color: "var(--text)",
-    fontSize: "0.9rem",
-    outline: "none",
-    fontFamily: "'Playfair Display', Georgia, serif",
-    borderBottom: "1px solid var(--border)",
-    width: "100%",
-  };
-
   return (
     <div style={{ padding: "2rem 0" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
@@ -154,18 +137,15 @@ export default function AdminDashboard() {
           {mode === "list" && (
             <>
               <button onClick={() => {
-                const now = new Date();
-                setJournalDate(now.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" }));
-                setJournalTime(now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }));
-                setMode("journal");
-              }} className="btn-secondary" style={{ fontSize: "0.82rem", padding: "0.6rem 1.25rem" }}>
-                Journal
-              </button>
-              <button onClick={() => {
                 setEditingArticle(null);
                 setMode("article");
               }} className="btn-primary" style={{ fontSize: "0.82rem", padding: "0.6rem 1.25rem" }}>
-                Write Article
+                + Article
+              </button>
+              <button onClick={() => {
+                setMode("journal");
+              }} className="btn-secondary" style={{ fontSize: "0.82rem", padding: "0.6rem 1.25rem" }}>
+                + Journal
               </button>
             </>
           )}
@@ -195,10 +175,6 @@ export default function AdminDashboard() {
       {mode === "journal" && (
         <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "2rem", display: "flex", flexDirection: "column", gap: "1rem", animation: "fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)" }}>
           <h2 style={{ fontSize: "1.1rem", fontWeight: 700, color: "var(--text)", marginBottom: "0.25rem" }}>Journal Entry</h2>
-          <div style={{ display: "flex", gap: "1rem" }}>
-            <input type="text" placeholder="August 15, 2003" value={journalDate} onChange={(e) => setJournalDate(e.target.value)} style={{ ...inputStyle, flex: 2 }} />
-            <input type="text" placeholder="3:45 PM" value={journalTime} onChange={(e) => setJournalTime(e.target.value)} style={{ ...inputStyle, flex: 1, color: "var(--text-tertiary)" }} />
-          </div>
           <div style={{ display: "flex", justifyContent: "flex-end" }}>
             <label className="btn-secondary" style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem", cursor: "pointer" }}>
               {uploading ? "Uploading..." : "+ Image"}
@@ -214,7 +190,7 @@ export default function AdminDashboard() {
             style={{ width: "100%", padding: "0", border: "none", background: "transparent", color: "var(--text)", fontSize: "1.05rem", lineHeight: 1.9, outline: "none", fontFamily: "'Playfair Display', Georgia, serif", resize: "none" }}
           />
           <div style={{ display: "flex", gap: "0.5rem", justifyContent: "flex-end", borderTop: "1px solid var(--border)", paddingTop: "1rem" }}>
-            <button onClick={() => { setMode("list"); setJournalDate(""); setJournalTime(""); setJournalContent(""); }} className="btn-secondary" style={{ fontSize: "0.82rem", padding: "0.5rem 1rem" }}>Cancel</button>
+            <button onClick={() => { setMode("list"); setJournalContent(""); }} className="btn-secondary" style={{ fontSize: "0.82rem", padding: "0.5rem 1rem" }}>Cancel</button>
             <button onClick={handleJournalSubmit} disabled={saving || !journalContent.trim()} className="btn-primary" style={{ fontSize: "0.82rem", padding: "0.5rem 1rem", opacity: saving || !journalContent.trim() ? 0.5 : 1 }}>
               {saving ? "Saving..." : "Publish"}
             </button>
@@ -224,7 +200,7 @@ export default function AdminDashboard() {
 
       {/* Stats */}
       {mode === "list" && (
-        <div className="stats-grid animate-in" style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.75rem", marginBottom: "2rem" }}>
+        <div className="stats-grid animate-in" style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "0.75rem", marginBottom: "2rem" }}>
           <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "1.25rem" }}>
             <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.25rem" }}>Articles</div>
             <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text)" }}>{stats.totalArticles}</div>
@@ -232,14 +208,6 @@ export default function AdminDashboard() {
           <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "1.25rem" }}>
             <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.25rem" }}>Words</div>
             <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text)" }}>{stats.totalWords.toLocaleString()}</div>
-          </div>
-          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "1.25rem" }}>
-            <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.25rem" }}>Read Time</div>
-            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text)" }}>{stats.totalReadingTime}m</div>
-          </div>
-          <div style={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "1.25rem" }}>
-            <div style={{ fontSize: "0.7rem", fontWeight: 600, color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.05em", marginBottom: "0.25rem" }}>Days Active</div>
-            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text)" }}>{stats.daysActive}</div>
           </div>
         </div>
       )}
@@ -260,18 +228,9 @@ export default function AdminDashboard() {
                   )}
                   <div style={{ minWidth: 0 }}>
                     <h3 style={{ fontSize: "0.92rem", fontWeight: 600, color: "var(--text)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{article.title}</h3>
-                    <p style={{ fontSize: "0.78rem", color: "var(--text-tertiary)", marginTop: "0.15rem", display: "flex", gap: "0.5rem" }}>
+                    <p style={{ fontSize: "0.78rem", color: "var(--text-tertiary)", marginTop: "0.15rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
                       <span>{new Date(article.createdAt).toLocaleDateString()}</span>
-                      <span style={{ opacity: 0.4 }}>|</span>
                       <span style={{ color: article.published ? "var(--badge-green-text)" : "var(--badge-yellow-text)" }}>{article.published ? "Published" : "Draft"}</span>
-                      <span style={{ opacity: 0.4 }}>|</span>
-                      <span>{article.category}</span>
-                      {article.view_count !== undefined && article.view_count > 0 && (
-                        <>
-                          <span style={{ opacity: 0.4 }}>|</span>
-                          <span>{article.view_count} views</span>
-                        </>
-                      )}
                     </p>
                   </div>
                 </div>
