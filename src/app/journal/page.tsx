@@ -7,13 +7,12 @@ export const metadata: Metadata = {
   description: "A daily record of what I learn, build, and think about.",
 };
 
-export const revalidate = 300;
+export const revalidate = 60;
 
 export default async function JournalPage() {
   let entries: Awaited<ReturnType<typeof getArticles>> = [];
   try {
-    entries = await getArticles(true);
-    entries = entries.filter((a) => a.category === "Journal" || a.category === "journal");
+    entries = await getArticles(true, "Journal");
   } catch {
     entries = [];
   }

@@ -20,6 +20,11 @@
   user-select: none;
   cursor: pointer;
   box-shadow: var(--shadow-sm);
+  contain: layout style paint;
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
 }
 
 .pixel-card:hover {
@@ -95,4 +100,5 @@
 .pixel-card.article-card {
   min-height: 260px;
   background: var(--bg-card);
+  contain: layout style paint;
 }

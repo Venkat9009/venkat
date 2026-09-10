@@ -113,8 +113,10 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
   }
 
   const wordCount = article.word_count || (article.content?.split(/\s+/).length || 0);
-  const related = await getRelatedArticles(article.slug, article.category, 3);
-  const seriesArticles = article.series ? await getSeriesArticles(article.series, article.slug) : [];
+  const [related, seriesArticles] = await Promise.all([
+    getRelatedArticles(article.slug, article.category, 3),
+    article.series ? getSeriesArticles(article.series, article.slug) : Promise.resolve([]),
+  ]);
 
   const jsonLd = {
     "@context": "https://schema.org",

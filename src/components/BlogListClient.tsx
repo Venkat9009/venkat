@@ -12,6 +12,7 @@ function FilterBtn({ label, isActive, onClick }: { label: string; isActive: bool
   return (
     <button
       onClick={onClick}
+
       style={{
         padding: "0.45rem 1.1rem",
         borderRadius: "980px",
@@ -354,6 +355,7 @@ export default function BlogListClient({ initialArticles, initialCategories }: B
               <button
                 onClick={() => { setPage((p) => p + 1); updateURL({ page: String(page + 1) }); }}
                 className="btn-secondary"
+          
                 style={{ padding: "0.6rem 2rem" }}
               >
                 Load More

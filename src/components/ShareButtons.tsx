@@ -27,6 +27,7 @@ export default function ShareButtons({ title, slug }: ShareButtonsProps) {
         target="_blank"
         rel="noopener noreferrer"
         className="share-btn"
+
         aria-label={`Share "${title}" on LinkedIn`}
       >
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
@@ -36,6 +37,7 @@ export default function ShareButtons({ title, slug }: ShareButtonsProps) {
       <button
         onClick={copyLink}
         className="share-btn"
+
         aria-label={copied ? "Link copied" : "Copy link"}
         style={{ width: copied ? "auto" : undefined, padding: copied ? "0 0.75rem" : undefined, fontSize: "0.78rem", fontWeight: 500 }}
       >

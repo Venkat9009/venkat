@@ -21,17 +21,8 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
       lenis.scrollTo(0, { immediate: true, force: true });
     };
 
-    // Prevent body scroll when Lenis is handling it on mobile
-    const preventBodyScroll = (e: TouchEvent) => {
-      // Allow scrolling inside modals/menus that have their own scroll
-      const target = e.target as HTMLElement;
-      if (target.closest('.nav-mobile-menu, [data-lenis-prevent]')) return;
-    };
-
     if (isMobile) {
-      document.body.style.overflow = "hidden";
       window.addEventListener("orientationchange", onOrientationChange);
-      document.addEventListener("touchmove", preventBodyScroll, { passive: true });
     }
 
     function raf(time: number) {
@@ -45,9 +36,7 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
       cancelAnimationFrame(rafRef.current);
       lenis.destroy();
       if (isMobile) {
-        document.body.style.overflow = "";
         window.removeEventListener("orientationchange", onOrientationChange);
-        document.removeEventListener("touchmove", preventBodyScroll);
       }
     };
   }, []);

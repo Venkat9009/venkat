@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
@@ -47,13 +47,13 @@ export default function AdminDashboard() {
     }
   }, [successMsg]);
 
-  const stats: SiteStats = {
+  const stats: SiteStats = useMemo(() => ({
     totalArticles: articles.length,
     totalWords: articles.reduce((sum, a) => sum + (a.content?.split(/\s+/).length || 0), 0),
     totalReadingTime: articles.reduce((sum, a) => sum + (a.reading_time || Math.max(1, Math.ceil((a.content?.length || 0) / 1200))), 0),
     daysActive: new Set(articles.map((a) => new Date(a.createdAt).toDateString())).size,
     categories: [...new Set(articles.map((a) => a.category))],
-  };
+  }), [articles]);
 
   const uploadImage = useCallback(async (file: File): Promise<string | null> => {
     setUploading(true);

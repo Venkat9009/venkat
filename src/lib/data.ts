@@ -23,31 +23,10 @@ function mapArticle(a: Record<string, unknown>): Article {
   };
 }
 
-function mapArticleRow(a: Record<string, unknown>): Article {
-  return {
-    id: a.id as string,
-    title: a.title as string,
-    slug: a.slug as string,
-    content: a.content as string,
-    excerpt: a.excerpt as string,
-    category: a.category as string,
-    published: a.published as boolean,
-    cover_image: (a.cover_image as string) || undefined,
-    tags: (a.tags as string[]) || [],
-    mood: (a.mood as string) || undefined,
-    series: (a.series as string) || undefined,
-    word_count: (a.word_count as number) || undefined,
-    reading_time: (a.reading_time as number) || undefined,
-    view_count: (a.view_count as number) || 0,
-    like_count: (a.like_count as number) || 0,
-    createdAt: a.created_at as string,
-    updatedAt: a.updated_at as string,
-  };
-}
-
-export async function getArticles(publishedOnly = false): Promise<Article[]> {
+export async function getArticles(publishedOnly = false, category?: string): Promise<Article[]> {
   let query = supabase.from("articles").select("*").order("created_at", { ascending: false });
   if (publishedOnly) query = query.eq("published", true);
+  if (category) query = query.eq("category", category);
   const { data, error } = await query;
   if (error) throw error;
   return (data || []).map((a) => mapArticle(a));
@@ -56,13 +35,13 @@ export async function getArticles(publishedOnly = false): Promise<Article[]> {
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
   const { data, error } = await supabase.from("articles").select("*").eq("slug", slug).single();
   if (error || !data) return null;
-  return mapArticleRow(data);
+  return mapArticle(data);
 }
 
 export async function getArticleById(id: string): Promise<Article | null> {
   const { data, error } = await supabase.from("articles").select("*").eq("id", id).single();
   if (error || !data) return null;
-  return mapArticleRow(data);
+  return mapArticle(data);
 }
 
 export async function getSeriesArticles(series: string, excludeSlug?: string): Promise<Article[]> {
@@ -75,7 +54,7 @@ export async function getSeriesArticles(series: string, excludeSlug?: string): P
   if (excludeSlug) query = query.neq("slug", excludeSlug);
   const { data, error } = await query;
   if (error || !data) return [];
-  return data.map((a) => mapArticleRow(a));
+  return data.map((a) => mapArticle(a));
 }
 
 export async function createArticle(data: {
@@ -115,7 +94,7 @@ export async function createArticle(data: {
     .select()
     .single();
   if (error) throw error;
-  return mapArticleRow(article);
+  return mapArticle(article);
 }
 
 export async function updateArticle(id: string, data: Partial<Article>): Promise<Article | null> {
@@ -142,7 +121,7 @@ export async function updateArticle(id: string, data: Partial<Article>): Promise
     .select()
     .single();
   if (error || !article) return null;
-  return mapArticleRow(article);
+  return mapArticle(article);
 }
 
 export async function deleteArticle(id: string): Promise<boolean> {
@@ -166,5 +145,5 @@ export async function getRelatedArticles(slug: string, category: string, limit =
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error || !data) return [];
-  return data.map((a) => mapArticleRow(a));
+  return data.map((a) => mapArticle(a));
 }

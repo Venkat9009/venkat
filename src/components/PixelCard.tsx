@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, memo } from "react";
 import "./PixelCard.css";
 
 class Pixel {
@@ -204,7 +204,7 @@ interface PixelCardProps {
   children: React.ReactNode;
 }
 
-export default function PixelCard({
+const PixelCard = memo(function PixelCard({
   variant = "default",
   gap,
   speed,
@@ -352,7 +352,6 @@ export default function PixelCard({
 
   const doAnimate = (fnName: "appear" | "disappear") => {
     animationRef.current = requestAnimationFrame(() => doAnimate(fnName));
-    // eslint-disable-next-line react-hooks/purity
     const timeNow = performance.now();
     const timePassed = timeNow - timePreviousRef.current;
     const timeInterval = 1000 / 60;
@@ -429,4 +428,6 @@ export default function PixelCard({
       )}
     </div>
   );
-}
+});
+
+export default PixelCard;

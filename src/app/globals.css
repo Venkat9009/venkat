@@ -73,6 +73,7 @@ body {
   transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  contain: layout style;
 }
 
 a { color: inherit; text-decoration: none; }
@@ -535,6 +536,7 @@ input:focus {
   transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
+  contain: layout style paint;
 }
 
 .code-block-header {

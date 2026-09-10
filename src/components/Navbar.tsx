@@ -69,6 +69,7 @@ export default function Navbar() {
         {/* Left — Logo */}
         <Link
           href="/"
+
           style={{
             fontSize: "1.1rem",
             fontWeight: 700,
@@ -105,6 +106,7 @@ export default function Navbar() {
               key={link.href}
               href={link.href}
               aria-current={link.active ? "page" : undefined}
+    
               style={{
                 fontSize: "0.8rem",
                 fontWeight: 500,
@@ -129,6 +131,7 @@ export default function Navbar() {
             onClick={toggleTheme}
             aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
             className="theme-toggle"
+  
             style={{
               background: "color-mix(in srgb, var(--text) 8%, transparent)",
               border: "1px solid var(--border)",

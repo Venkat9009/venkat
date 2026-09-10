@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   description: "Thoughts on development, design, and the things I'm learning along the way.",
 };
 
-export const revalidate = 300;
+export const revalidate = 60;
 
 export default async function BlogPage() {
   let articles: Awaited<ReturnType<typeof getArticles>> = [];
