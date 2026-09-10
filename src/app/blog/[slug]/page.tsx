@@ -2,23 +2,16 @@ import Link from "next/link";
 import CoverImage from "@/components/CoverImage";
 import { cookies } from "next/headers";
 import type { Metadata } from "next";
-import { cache, Suspense } from "react";
-import dynamic from "next/dynamic";
+import { cache } from "react";
 import { getArticleBySlug, getArticleById, getRelatedArticles } from "@/lib/data";
 import { checkAuthFromCookie, SESSION_COOKIE } from "@/lib/auth";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import ReadingProgressBar from "@/components/ReadingProgressBar";
 import ShareButtons from "@/components/ShareButtons";
 import BackToTop from "@/components/BackToTop";
+import { LazyTableOfContents, LazyRelatedArticles, LazySeriesBadge, LazyNewsletterSignup, LazyViewCounter, LazyLikeButton } from "@/components/LazyBelowFold";
 import { getSiteUrl } from "@/lib/config";
 import { getSeriesArticles } from "@/lib/data";
-
-const TableOfContents = dynamic(() => import("@/components/TableOfContents"), { ssr: false });
-const RelatedArticles = dynamic(() => import("@/components/RelatedArticles"), { ssr: false });
-const SeriesBadge = dynamic(() => import("@/components/SeriesBadge"), { ssr: false });
-const NewsletterSignup = dynamic(() => import("@/components/NewsletterSignup"), { ssr: false });
-const ViewCounter = dynamic(() => import("@/components/ViewCounter"), { ssr: false });
-const LikeButton = dynamic(() => import("@/components/LikeButton"), { ssr: false });
 
 const SITE_URL = getSiteUrl();
 
@@ -86,8 +79,8 @@ function ReadingMeta({ article }: { article: { reading_time?: number; content?: 
         </>
       )}
       <span style={{ opacity: 0.4 }}>·</span>
-      <ViewCounter slug={article.slug} />
-      <LikeButton slug={article.slug} />
+      <LazyViewCounter slug={article.slug} />
+      <LazyLikeButton slug={article.slug} />
     </div>
   );
 }
@@ -200,11 +193,9 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
         <div style={{ borderTop: "1px solid var(--border)", marginBottom: "2.5rem" }} />
 
-        <Suspense fallback={null}>
-          {article.series && seriesArticles.length > 0 && (
-            <SeriesBadge series={article.series} currentSlug={article.slug} articles={seriesArticles} />
-          )}
-        </Suspense>
+        {article.series && seriesArticles.length > 0 && (
+          <LazySeriesBadge series={article.series} currentSlug={article.slug} articles={seriesArticles} />
+        )}
 
         <div style={{ display: "flex", gap: "3rem", alignItems: "flex-start" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -213,19 +204,17 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             </div>
           </div>
           <div className="article-toc-wrapper">
-            <TableOfContents content={article.content} />
+            <LazyTableOfContents content={article.content} />
           </div>
         </div>
 
-        <Suspense fallback={null}>
-          {related.length > 0 && (
-            <div className="animate-in animate-in-delay-3">
-              <RelatedArticles articles={related} />
-            </div>
-          )}
+        {related.length > 0 && (
+          <div className="animate-in animate-in-delay-3">
+            <LazyRelatedArticles articles={related} />
+          </div>
+        )}
 
-          <NewsletterSignup />
-        </Suspense>
+        <LazyNewsletterSignup />
 
         <div style={{ borderTop: "1px solid var(--border)", margin: "3.5rem 0 2rem" }} />
 
