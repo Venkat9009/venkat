@@ -2,24 +2,27 @@ import Link from "next/link";
 import CoverImage from "@/components/CoverImage";
 import { cookies } from "next/headers";
 import type { Metadata } from "next";
+import { cache, Suspense } from "react";
+import dynamic from "next/dynamic";
 import { getArticleBySlug, getArticleById, getRelatedArticles } from "@/lib/data";
 import { checkAuthFromCookie, SESSION_COOKIE } from "@/lib/auth";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import ReadingProgressBar from "@/components/ReadingProgressBar";
 import ShareButtons from "@/components/ShareButtons";
 import BackToTop from "@/components/BackToTop";
-import TableOfContents from "@/components/TableOfContents";
-import RelatedArticles from "@/components/RelatedArticles";
-import ViewCounter from "@/components/ViewCounter";
-import LikeButton from "@/components/LikeButton";
-import SeriesBadge from "@/components/SeriesBadge";
-import NewsletterSignup from "@/components/NewsletterSignup";
 import { getSiteUrl } from "@/lib/config";
 import { getSeriesArticles } from "@/lib/data";
 
+const TableOfContents = dynamic(() => import("@/components/TableOfContents"), { ssr: false });
+const RelatedArticles = dynamic(() => import("@/components/RelatedArticles"), { ssr: false });
+const SeriesBadge = dynamic(() => import("@/components/SeriesBadge"), { ssr: false });
+const NewsletterSignup = dynamic(() => import("@/components/NewsletterSignup"), { ssr: false });
+const ViewCounter = dynamic(() => import("@/components/ViewCounter"), { ssr: false });
+const LikeButton = dynamic(() => import("@/components/LikeButton"), { ssr: false });
+
 const SITE_URL = getSiteUrl();
 
-async function getViewableArticle(slug: string) {
+const getViewableArticle = cache(async (slug: string) => {
   let article = await getArticleBySlug(slug);
   if (!article) article = await getArticleById(slug);
   if (!article) return null;
@@ -31,7 +34,7 @@ async function getViewableArticle(slug: string) {
   }
 
   return article;
-}
+});
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -197,9 +200,11 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
 
         <div style={{ borderTop: "1px solid var(--border)", marginBottom: "2.5rem" }} />
 
-        {article.series && seriesArticles.length > 0 && (
-          <SeriesBadge series={article.series} currentSlug={article.slug} articles={seriesArticles} />
-        )}
+        <Suspense fallback={null}>
+          {article.series && seriesArticles.length > 0 && (
+            <SeriesBadge series={article.series} currentSlug={article.slug} articles={seriesArticles} />
+          )}
+        </Suspense>
 
         <div style={{ display: "flex", gap: "3rem", alignItems: "flex-start" }}>
           <div style={{ flex: 1, minWidth: 0 }}>
@@ -212,13 +217,15 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           </div>
         </div>
 
-        {related.length > 0 && (
-          <div className="animate-in animate-in-delay-3">
-            <RelatedArticles articles={related} />
-          </div>
-        )}
+        <Suspense fallback={null}>
+          {related.length > 0 && (
+            <div className="animate-in animate-in-delay-3">
+              <RelatedArticles articles={related} />
+            </div>
+          )}
 
-        <NewsletterSignup />
+          <NewsletterSignup />
+        </Suspense>
 
         <div style={{ borderTop: "1px solid var(--border)", margin: "3.5rem 0 2rem" }} />
 
