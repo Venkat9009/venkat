@@ -1,9 +1,9 @@
 import Link from "next/link";
-import type { Article } from "@/types";
+import type { ArticleListItem } from "@/types";
 import PixelCard from "@/components/PixelCard";
 import CalendarHeatmap from "@/components/CalendarHeatmap";
 import Typewriter from "@/components/Typewriter";
-import { getArticles } from "@/lib/data";
+import { getArticleList } from "@/lib/data";
 
 export const revalidate = 60;
 
@@ -20,9 +20,9 @@ const highlights = [
 ];
 
 export default async function HomePage() {
-  let articles: Article[] = [];
+  let articles: ArticleListItem[] = [];
   try {
-    articles = await getArticles(true);
+    articles = await getArticleList(6);
   } catch {
     articles = [];
   }

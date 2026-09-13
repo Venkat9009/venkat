@@ -1,5 +1,5 @@
 import { supabase, db } from "./supabase";
-import type { Article } from "@/types";
+import type { Article, ArticleListItem } from "@/types";
 
 function mapArticle(a: Record<string, unknown>): Article {
   return {
@@ -30,6 +30,31 @@ export async function getArticles(publishedOnly = false, category?: string): Pro
   const { data, error } = await query;
   if (error) throw error;
   return (data || []).map((a) => mapArticle(a));
+}
+
+export async function getArticleList(limit = 6): Promise<ArticleListItem[]> {
+  const { data, error } = await supabase
+    .from("articles")
+    .select("id, title, slug, excerpt, category, published, cover_image, tags, mood, series, view_count, like_count, created_at")
+    .eq("published", true)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data || []).map((a) => ({
+    id: a.id as string,
+    title: a.title as string,
+    slug: a.slug as string,
+    excerpt: a.excerpt as string,
+    category: a.category as string,
+    published: a.published as boolean,
+    cover_image: (a.cover_image as string) || undefined,
+    tags: (a.tags as string[]) || [],
+    mood: (a.mood as string) || undefined,
+    series: (a.series as string) || undefined,
+    view_count: (a.view_count as number) || 0,
+    like_count: (a.like_count as number) || 0,
+    createdAt: a.created_at as string,
+  }));
 }
 
 export async function getArticleBySlug(slug: string): Promise<Article | null> {
