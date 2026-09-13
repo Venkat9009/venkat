@@ -61,7 +61,12 @@ export default function TableOfContents({ content }: { content: string }) {
   const handleClick = (id: string) => {
     const el = document.getElementById(id);
     if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "start" });
+      const lenis = window.__lenis;
+      if (lenis) {
+        lenis.scrollTo(el, { duration: 1.2, offset: -80 });
+      } else {
+        el.scrollIntoView({ behavior: "smooth", block: "start" });
+      }
       setActiveId(id);
       setIsOpen(false);
     }
