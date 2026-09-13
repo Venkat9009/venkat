@@ -15,8 +15,8 @@ const skills = {
 
 const highlights = [
   { label: "Internship", value: "Frontend Developer — Prompt 2 Prod AI", period: "Feb 28 – Jun 14, 2026" },
-  { label: "Education", value: "B.Tech Data Science", period: "JNTUH" },
-  { label: "Projects", value: "Full-Stack Web Apps", period: "Next.js + Supabase" },
+  { label: "Education", value: "B.Tech Data Science", period: "Sri Indu College of Engineering & Teachnology" },
+  { label: "Projects", value: "Full-Stack Web Apps", period: "Next.js,Fast-API,Supabase" },
 ];
 
 export default async function HomePage() {
