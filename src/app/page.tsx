@@ -15,8 +15,8 @@ const skills = {
 
 const highlights = [
   { label: "Internship", value: "Frontend Developer — Prompt 2 Prod AI", period: "Feb 28 – Jun 14, 2026" },
-  { label: "Education", value: "B.Tech Data Science", period: "Sri Indu College of Engineering & Teachnology" },
-  { label: "Projects", value: "Full-Stack Web Apps", period: "Next.js,Fast-API,Supabase" },
+  { label: "Education", value: "B.Tech Data Science", period: "Sri Indu College of Engg" },
+  { label: "Projects", value: "Full-Stack Web Apps", period: "Next.js, Fast-API, Supabase" },
 ];
 
 export default async function HomePage() {
@@ -159,11 +159,11 @@ export default async function HomePage() {
 
           {highlights.map((h, i) => (
             <div key={h.label} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.75rem 0", borderTop: "1px solid var(--border)" }}>
-              <div style={{ textAlign: "left" }}>
+              <div style={{ textAlign: "left", minWidth: 0 }}>
                 <p style={{ fontSize: "0.72rem", color: "var(--text-tertiary)", fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase" }}>{h.label}</p>
                 <p style={{ fontSize: i === 0 ? "1rem" : "0.9rem", color: "var(--text)", fontWeight: i === 0 ? 700 : 600 }}>{h.value}</p>
               </div>
-              <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 500 }}>{h.period}</span>
+              <span style={{ fontSize: "0.85rem", color: "var(--text-secondary)", fontWeight: 500, marginLeft: "1rem", flexShrink: 0 }}>{h.period}</span>
             </div>
           ))}
 
