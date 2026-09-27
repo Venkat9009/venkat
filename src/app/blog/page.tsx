@@ -2,10 +2,12 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import BlogListClient from "@/components/BlogListClient";
 import { getArticles, getCategories } from "@/lib/data";
+import { getSiteUrl } from "@/lib/config";
 
 export const metadata: Metadata = {
   title: "Articles — Venkat",
   description: "Thoughts on development, design, and the things I'm learning along the way.",
+  alternates: { canonical: `${getSiteUrl()}/blog` },
 };
 
 export const revalidate = 60;

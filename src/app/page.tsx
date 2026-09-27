@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ArticleListItem } from "@/types";
-import PixelCard from "@/components/PixelCard";
+import ArticleCard from "@/components/ArticleCard";
 import CalendarHeatmap from "@/components/CalendarHeatmap";
 import Typewriter from "@/components/Typewriter";
 import { getArticleList } from "@/lib/data";
@@ -14,7 +14,7 @@ const skills = {
 };
 
 const highlights = [
-  { label: "Internship", value: "Frontend Developer — Prompt 2 Prod AI", period: "Feb 28 – Jun 14, 2026" },
+  { label: "Internship", value: "Intern — A+ Plus Tech Service", period: "Since Aug 2026" },
   { label: "Education", value: "B.Tech Data Science", period: "Sri Indu College of Engg" },
   { label: "Projects", value: "Full-Stack Web Apps", period: "Next.js, Fast-API, Supabase" },
 ];
@@ -26,8 +26,6 @@ export default async function HomePage() {
   } catch {
     articles = [];
   }
-
-  const variants = ["default", "blue", "yellow", "pink"] as const;
 
   return (
     <>
@@ -86,7 +84,7 @@ export default async function HomePage() {
               marginBottom: "1.5rem",
             }}
           >
-            I&apos;m a Frontend Developer and Data Science student who
+            I&apos;m a Developer and Data Science student who
             loves building real products. From concept to deployment —
             I ship fast, clean, and user-focused web applications.
           </p>
@@ -246,7 +244,7 @@ export default async function HomePage() {
           </span>
         </div>
         <div
-          className="animate-in animate-in-delay-1"
+          className="animate-in animate-in-delay-1 heatmap-card"
           style={{
             background: "var(--bg-card)",
             border: "1px solid var(--border)",
@@ -284,40 +282,10 @@ export default async function HomePage() {
             <p style={{ fontSize: "0.9rem" }}>No articles published yet.</p>
           </div>
         ) : (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: "1rem" }}>
             {articles.slice(0, 6).map((article, i) => {
-              const variant = variants[i % variants.length];
               return (
-                <Link
-                  key={article.id}
-                  href={`/blog/${article.slug}`}
-                  style={{ textDecoration: "none", color: "inherit", animation: `fadeUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) ${0.1 * i}s both` }}
-                >
-                  <PixelCard variant={variant} reveal className="article-card" pixelText={article.title}>
-                    <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", justifyContent: "flex-end", zIndex: 1 }}>
-                      {article.cover_image && (
-                        <img src={article.cover_image} alt="" crossOrigin="anonymous" aria-hidden style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover", borderRadius: "inherit" }} />
-                      )}
-                      <div style={{ position: "absolute", inset: 0, background: article.cover_image ? "linear-gradient(180deg, transparent 40%, rgba(0,0,0,0.7) 100%)" : "none", borderRadius: "inherit" }} />
-                      <span className="tag" style={{ position: "absolute", top: "1.25rem", left: "1.25rem", zIndex: 2 }}>
-                        {article.category}
-                      </span>
-                      <div style={{ position: "relative", zIndex: 2, padding: "1.5rem" }}>
-                        <h3 style={{ fontSize: "1.05rem", fontWeight: 600, color: article.cover_image ? "#fff" : "var(--text)", letterSpacing: "-0.01em", marginBottom: "0.3rem", lineHeight: 1.3 }}>
-                          {article.title}
-                        </h3>
-                        {!article.cover_image && (
-                          <p style={{ fontSize: "0.78rem", color: "var(--text-secondary)", lineHeight: 1.4, overflow: "hidden", textOverflow: "ellipsis", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", marginBottom: "0.5rem" } as React.CSSProperties}>
-                            {article.excerpt}
-                          </p>
-                        )}
-                        <span style={{ fontSize: "0.72rem", color: article.cover_image ? "rgba(255,255,255,0.65)" : "var(--text-tertiary)" }}>
-                          {new Date(article.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
-                        </span>
-                      </div>
-                    </div>
-                  </PixelCard>
-                </Link>
+                <ArticleCard key={article.id} article={article} index={i} compactDate />
               );
             })}
           </div>

@@ -3,6 +3,7 @@
 import { useMemo, useCallback, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { ArticleListItem } from "@/types";
+import { formatMonthShort, formatDateLong } from "@/lib/format";
 
 const LEVEL_VARS = ["var(--heat-0)", "var(--heat-1)", "var(--heat-2)", "var(--heat-3)", "var(--heat-4)"];
 
@@ -25,7 +26,7 @@ function useIsMobile() {
   return isMobile;
 }
 
-export default function CalendarHeatmap({ articles }: { articles: ArticleListItem[] }) {
+export default function CalendarHeatmap({ articles, onDayClick }: { articles: ArticleListItem[]; onDayClick?: (slugs: string[]) => void }) {
   const router = useRouter();
   const isMobile = useIsMobile();
 
@@ -84,7 +85,7 @@ export default function CalendarHeatmap({ articles }: { articles: ArticleListIte
       if (!firstValid) return;
       const month = firstValid.getMonth();
       if (month !== lastMonth) {
-        monthLabels.push({ week: w, label: firstValid.toLocaleDateString("en-US", { month: "short" }) });
+        monthLabels.push({ week: w, label: formatMonthShort(firstValid.toISOString()) });
         lastMonth = month;
       }
     });
@@ -94,12 +95,18 @@ export default function CalendarHeatmap({ articles }: { articles: ArticleListIte
 
   const handleDayClick = useCallback((slugs: string[]) => {
     if (slugs.length === 0) return;
+    // Same-page consumers (journal) handle the click inline instead of
+    // navigating to a separate page.
+    if (onDayClick) {
+      onDayClick(slugs);
+      return;
+    }
     if (slugs.length === 1) {
       router.push(`/blog/${slugs[0]}`);
     } else {
       router.push("/blog");
     }
-  }, [router]);
+  }, [router, onDayClick]);
 
   const colors = LEVEL_VARS;
   const dayLabels = ["", "Mon", "", "Wed", "", "Fri", ""];
@@ -135,7 +142,7 @@ export default function CalendarHeatmap({ articles }: { articles: ArticleListIte
                   onClick={() => handleDayClick(day.slugs)}
                   title={
                     day.date
-                      ? `${day.count} ${day.count === 1 ? "post" : "posts"}\n${day.date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric", year: "numeric" })}\n${day.times.length > 0 ? day.times.map(t => t.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })).join(", ") : ""}`
+                      ? `${day.count} ${day.count === 1 ? "post" : "posts"}\n${formatDateLong(day.date.toISOString())}`
                       : ""
                   }
                   style={{

@@ -199,6 +199,7 @@ interface PixelCardProps {
   noFocus?: boolean;
   invert?: boolean;
   reveal?: boolean;
+  dissolveOnHover?: boolean;
   className?: string;
   pixelText?: string;
   children: React.ReactNode;
@@ -212,6 +213,7 @@ const PixelCard = memo(function PixelCard({
   noFocus,
   invert = false,
   reveal = false,
+  dissolveOnHover = false,
   className = "",
   pixelText,
   children,
@@ -221,6 +223,9 @@ const PixelCard = memo(function PixelCard({
   const pixelsRef = useRef<Pixel[]>([]);
   const animationRef = useRef<number>(0);
   const timePreviousRef = useRef(0);
+  const pixelateRef = useRef<number>(0);
+  const blockRef = useRef<number>(1);
+  const imgReadyRef = useRef<boolean>(false);
   const reducedMotion =
     typeof window !== "undefined" &&
     window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -336,7 +341,7 @@ const PixelCard = memo(function PixelCard({
           getEffectiveSpeed(finalSpeed, reducedMotion),
           delay
         );
-        if (reveal) {
+        if (reveal && !dissolveOnHover) {
           p.progress = 1;
           p.size = p.maxSize;
         }
@@ -380,31 +385,165 @@ const PixelCard = memo(function PixelCard({
 
   const handleAnimation = (name: "appear" | "disappear") => {
     cancelAnimationFrame(animationRef.current);
+    cancelAnimationFrame(pixelateRef.current);
     animationRef.current = requestAnimationFrame(() => doAnimate(name));
   };
 
-  const onMouseEnter = () => handleAnimation(reveal ? "disappear" : "appear");
-  const onMouseLeave = () => handleAnimation(reveal ? "appear" : "disappear");
+  const stopAll = () => {
+    cancelAnimationFrame(animationRef.current);
+    cancelAnimationFrame(pixelateRef.current);
+  };
+
+  const getContentImg = (): HTMLImageElement | null => {
+    const img = containerRef.current?.querySelector(".pixel-card-content img");
+    return (img as HTMLImageElement) || null;
+  };
+
+  // True image pixelation: draw the card's own image cover-fit at low
+  // resolution, then upscale with smoothing off. Display-only drawImage
+  // never taints the canvas (no getImageData), so cross-origin images work.
+  const drawPixelated = (img: HTMLImageElement, block: number) => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (!canvas || !ctx) return;
+    const W = canvas.width;
+    const H = canvas.height;
+    if (W <= 0 || H <= 0) return;
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    if (!iw || !ih) return;
+    const b = Math.max(1, Math.round(block));
+    const w = Math.max(1, Math.round(W / b));
+    const h = Math.max(1, Math.round(H / b));
+    const small = document.createElement("canvas");
+    small.width = w;
+    small.height = h;
+    const sctx = small.getContext("2d");
+    if (!sctx) return;
+    const scale = Math.max(W / iw, H / ih);
+    const sw = W / scale;
+    const sh = H / scale;
+    const sx = (iw - sw) / 2;
+    const sy = (ih - sh) / 2;
+    sctx.imageSmoothingEnabled = true;
+    sctx.imageSmoothingQuality = "low";
+    sctx.drawImage(img, sx, sy, sw, sh, 0, 0, w, h);
+    ctx.imageSmoothingEnabled = false;
+    ctx.clearRect(0, 0, W, H);
+    ctx.drawImage(small, 0, 0, w, h, 0, 0, W, H);
+  };
+
+  const clearCanvas = () => {
+    const canvas = canvasRef.current;
+    const ctx = canvas?.getContext("2d");
+    if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  };
+
+  const maxPixelBlock = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return 24;
+    return Math.max(14, Math.floor(Math.min(canvas.width, canvas.height) / 10));
+  };
+
+  const animatePixelateTo = (target: number, duration = 450) => {
+    cancelAnimationFrame(animationRef.current);
+    cancelAnimationFrame(pixelateRef.current);
+    const img = getContentImg();
+    if (!img || reducedMotion) {
+      if (target <= 1) clearCanvas();
+      else if (img) drawPixelated(img, target);
+      blockRef.current = target;
+      return;
+    }
+    const from = blockRef.current;
+    if (from === target) {
+      if (target <= 1) clearCanvas();
+      else drawPixelated(img, target);
+      return;
+    }
+    const start = performance.now();
+    const step = (now: number) => {
+      const t = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const block = from + (target - from) * eased;
+      blockRef.current = block;
+      drawPixelated(img, block);
+      if (t < 1) {
+        pixelateRef.current = requestAnimationFrame(step);
+      } else if (target <= 1) {
+        clearCanvas();
+      }
+    };
+    pixelateRef.current = requestAnimationFrame(step);
+  };
+
+  const hasUsableImage = () => {
+    const img = getContentImg();
+    return !!img && img.complete && img.naturalWidth > 0;
+  };
+
+  const onMouseEnter = () => {
+    if (dissolveOnHover) {
+      if (hasUsableImage()) return animatePixelateTo(maxPixelBlock(), 450);
+      return handleAnimation("appear");
+    }
+    handleAnimation(reveal ? "disappear" : "appear");
+  };
+  const onMouseLeave = () => {
+    if (dissolveOnHover) {
+      if (hasUsableImage() || blockRef.current > 1) return animatePixelateTo(1, 350);
+      return handleAnimation("disappear");
+    }
+    handleAnimation(reveal ? "appear" : "disappear");
+  };
   const onFocus = (e: React.FocusEvent) => {
     if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    if (dissolveOnHover) {
+      if (hasUsableImage()) return animatePixelateTo(maxPixelBlock(), 450);
+      return handleAnimation("appear");
+    }
     handleAnimation("appear");
   };
   const onBlur = (e: React.FocusEvent) => {
     if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+    if (dissolveOnHover && blockRef.current > 1) return animatePixelateTo(1, 350);
     handleAnimation("disappear");
   };
 
   useEffect(() => {
     initPixels();
+    blockRef.current = 1;
+    const img = getContentImg();
+    const handleLoad = () => {
+      imgReadyRef.current = true;
+      initPixels();
+      // If cursor is already over the card when the image finishes
+      // loading, pixelate immediately so hover never looks broken.
+      if (containerRef.current?.matches(":hover")) {
+        animatePixelateTo(maxPixelBlock(), 450);
+      }
+    };
+    if (img && !img.complete) {
+      imgReadyRef.current = false;
+      img.addEventListener("load", handleLoad);
+    } else if (img) {
+      imgReadyRef.current = true;
+    }
     const observer = new ResizeObserver(() => {
       initPixels();
+      // Keep the pixelation covering the new size if hovered.
+      if (blockRef.current > 1 && hasUsableImage()) {
+        const im = getContentImg();
+        if (im) drawPixelated(im, blockRef.current);
+      }
     });
     if (containerRef.current) {
       observer.observe(containerRef.current);
     }
     return () => {
       observer.disconnect();
-      cancelAnimationFrame(animationRef.current);
+      img?.removeEventListener("load", handleLoad);
+      stopAll();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finalGap, finalSpeed, finalColors, finalNoFocus]);
@@ -412,7 +551,7 @@ const PixelCard = memo(function PixelCard({
   return (
     <div
       ref={containerRef}
-      className={`pixel-card ${invert ? "pixel-card-invert" : ""} ${reveal ? "pixel-card-reveal" : ""} ${className}`}
+      className={`pixel-card ${invert ? "pixel-card-invert" : ""} ${reveal && !dissolveOnHover ? "pixel-card-reveal" : ""} ${dissolveOnHover ? "pixel-card-dissolve" : ""} ${className}`}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       onFocus={finalNoFocus ? undefined : onFocus}
@@ -421,7 +560,7 @@ const PixelCard = memo(function PixelCard({
     >
       <canvas className="pixel-canvas" ref={canvasRef} />
       <div className="pixel-card-content">{children}</div>
-      {reveal && pixelText && (
+      {reveal && !dissolveOnHover && pixelText && (
         <div className="pixel-card-heading">
           <span className="pixel-card-title">{pixelText}</span>
         </div>

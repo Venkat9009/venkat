@@ -29,12 +29,13 @@ export const supabase = lazyClient(() =>
   createClient(getSupabaseUrl(), getSupabaseAnonKey())
 );
 
-const serviceRoleKey = getServiceRoleKey();
-
 // Writes use the service role when available; otherwise they fall back to
 // the anon client and will fail against RLS instead of crashing on startup.
-export const db = lazyClient(() =>
-  serviceRoleKey
+// The key is read lazily inside init (not at import time) so late-injected
+// env vars in tests still work.
+export const db = lazyClient(() => {
+  const serviceRoleKey = getServiceRoleKey();
+  return serviceRoleKey
     ? createClient(getSupabaseUrl(), serviceRoleKey)
-    : createClient(getSupabaseUrl(), getSupabaseAnonKey())
-);
+    : createClient(getSupabaseUrl(), getSupabaseAnonKey());
+});

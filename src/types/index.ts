@@ -34,6 +34,13 @@ export interface ArticleListItem {
   createdAt: string;
 }
 
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt: string;
+}
+
 export interface SiteStats {
   totalArticles: number;
   totalWords: number;

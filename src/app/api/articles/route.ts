@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { revalidatePath } from "next/cache";
 import { createArticle, updateArticle, deleteArticle, getArticles, getCategories } from "@/lib/data";
 import { checkAuth } from "@/lib/auth";
+
+function revalidateBlog() {
+  revalidatePath("/");
+  revalidatePath("/blog");
+  revalidatePath("/journal");
+  revalidatePath("/sitemap.xml");
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -63,6 +71,7 @@ export async function POST(request: NextRequest) {
         mood: mood || undefined,
         series: series || undefined,
       });
+    revalidateBlog();
     return NextResponse.json(article, { status: 201 });
   } catch {
     return NextResponse.json({ error: "Failed to create article" }, { status: 500 });
@@ -92,6 +101,7 @@ export async function PUT(request: NextRequest) {
     if (!updated) {
       return NextResponse.json({ error: "Article not found" }, { status: 404 });
     }
+    revalidateBlog();
     return NextResponse.json(updated);
   } catch {
     return NextResponse.json({ error: "Failed to update article" }, { status: 500 });
@@ -115,6 +125,7 @@ export async function DELETE(request: NextRequest) {
     if (!deleted) {
       return NextResponse.json({ error: "Article not found" }, { status: 404 });
     }
+    revalidateBlog();
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ error: "Failed to delete article" }, { status: 500 });

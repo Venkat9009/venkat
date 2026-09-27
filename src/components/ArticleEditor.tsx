@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useRef } from "react";
-import type { Article } from "@/types";
+import { useState, useRef, useEffect } from "react";
+import type { Article, Category } from "@/types";
 
 interface ArticleEditorProps {
   article?: Article;
@@ -20,6 +20,8 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
   const [series, setSeries] = useState(article?.series || "");
   const [published, setPublished] = useState(article?.published ?? false);
   const [coverImage, setCoverImage] = useState(article?.cover_image || "");
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
@@ -29,6 +31,22 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
   const contentImageRef = useRef<HTMLInputElement>(null);
 
   const isEditing = !!article;
+
+  // Categories are created first in the dashboard, then selected here —
+  // no free text, so typos/case differences can't spawn duplicates.
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/categories")
+      .then((r) => (r.ok ? r.json() : { categories: [] }))
+      .then((data) => {
+        if (!cancelled) setCategories(data.categories || []);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setCategoriesLoading(false);
+      });
+    return () => { cancelled = true; };
+  }, []);
 
   const generateSlug = (text: string) => {
     return text
@@ -64,7 +82,12 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
     const file = e.target.files?.[0];
     if (!file) return;
     const url = await uploadFile(file);
-    if (url) setCoverImage(url);
+    if (url) {
+      setCoverImage(url);
+      setError("");
+    } else {
+      setError("Cover upload failed. Check your connection and try again.");
+    }
     e.target.value = "";
   };
 
@@ -72,24 +95,27 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
     const file = e.target.files?.[0];
     if (!file) return;
     const url = await uploadFile(file);
-    if (url) {
-      const textarea = textareaRef.current;
-      if (textarea) {
-        const start = textarea.selectionStart;
-        const end = textarea.selectionEnd;
-        const before = content.slice(0, start);
-        const after = content.slice(end);
-        setContent(before + `\n\n![image](${url})\n\n` + after);
-      } else {
-        setContent((c) => c + `\n\n![image](${url})\n\n`);
-      }
+    if (!url) {
+      setError("Image upload failed. Check your connection and try again.");
+      e.target.value = "";
+      return;
+    }
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const before = content.slice(0, start);
+      const after = content.slice(end);
+      setContent(before + `\n\n![image](${url})\n\n` + after);
+    } else {
+      setContent((c) => c + `\n\n![image](${url})\n\n`);
     }
     e.target.value = "";
   };
 
   const handleSubmit = async () => {
     if (!title.trim() || !slug.trim() || !content.trim() || !category.trim()) {
-      setError("Title, slug, content, and category are required.");
+      setError("Title, slug, content, and category are required. Please select a category.");
       return;
     }
     setSaving(true);
@@ -144,6 +170,7 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
 
   return (
     <div
+      className="article-editor"
       style={{
         background: "var(--bg-card)",
         border: "1px solid var(--border)",
@@ -159,7 +186,7 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
         {isEditing ? "Edit Article" : "Write Article"}
       </h2>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+      <div className="editor-grid-2" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
         <div>
           <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Title</label>
           <input type="text" value={title} onChange={(e) => handleTitleChange(e.target.value)} placeholder="My new article" style={inputStyle} />
@@ -172,7 +199,25 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
 
       <div>
         <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Category</label>
-        <input type="text" value={category} onChange={(e) => setCategory(e.target.value)} placeholder="tech, tutorial, etc." style={inputStyle} />
+        <select
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+          disabled={categoriesLoading}
+          style={{ ...inputStyle, cursor: "pointer", appearance: "auto" }}
+        >
+          <option value="">{categoriesLoading ? "Loading categories..." : "Select a category"}</option>
+          {categories.map((c) => (
+            <option key={c.id} value={c.name}>{c.name}</option>
+          ))}
+          {category && !categories.some((c) => c.name === category) && (
+            <option value={category}>{category} (legacy)</option>
+          )}
+        </select>
+        {!categoriesLoading && categories.length === 0 && (
+          <p style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+            No categories yet — create one in the dashboard under “Categories” first.
+          </p>
+        )}
       </div>
 
       {/* Optional fields toggle */}
@@ -185,7 +230,7 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
       </button>
 
       {showOptional && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem", animation: "fadeIn 0.2s ease" }}>
+        <div className="editor-grid-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "0.75rem", animation: "fadeIn 0.2s ease" }}>
           <div>
             <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Tags</label>
             <input type="text" value={tags} onChange={(e) => setTags(e.target.value)} placeholder="react, nextjs" style={inputStyle} />

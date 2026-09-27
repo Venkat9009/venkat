@@ -13,16 +13,22 @@ export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: "Venkat — Developer & Writer",
   description: "Personal blog about web development, React, CSS, and data science.",
+  authors: [{ name: "Venkata Narayana Reddy", url: `${SITE_URL}/about` }],
+  creator: "Venkata Narayana Reddy",
   openGraph: {
     title: "Venkat — Developer & Writer",
     description: "Personal blog about web development, React, CSS, and data science.",
     type: "website",
     locale: "en_US",
+    url: SITE_URL,
+    siteName: "venkat.",
+    images: [{ url: `${SITE_URL}/api/og?title=Venkat%20—%20Developer%20%26%20Writer`, width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
     title: "Venkat — Developer & Writer",
     description: "Personal blog about web development, React, CSS, and data science.",
+    images: [`${SITE_URL}/api/og?title=Venkat%20—%20Developer%20%26%20Writer`],
   },
   robots: {
     index: true,
@@ -47,6 +53,7 @@ function Footer() {
         <span style={{ fontWeight: 500 }}>venkat.</span>
         <div style={{ display: "flex", gap: "1.5rem" }}>
           <a href="https://github.com/venkatanarayanareddyp2pai-ops" target="_blank" rel="noopener noreferrer" className="footer-link">GitHub</a>
+          <Link href="/journal" className="footer-link">Journal</Link>
           <a href="mailto:nvnreddy9009@gmail.com" className="footer-link">Email</a>
           <Link href="/admin/login" className="footer-link">Admin</Link>
         </div>

@@ -307,6 +307,40 @@ body.dark .navbar-scrolled {
   font-weight: 600;
 }
 
+/* Markdown tables (GFM): scroll horizontally on narrow screens instead
+   of breaking the layout — critical for mobile readers. */
+.prose table {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border-collapse: collapse;
+  margin: 1.75rem 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.prose th,
+.prose td {
+  padding: 0.6rem 0.85rem;
+  border: 1px solid var(--border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.prose th {
+  background: var(--bg-secondary);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.prose tr:nth-child(even) td {
+  background: color-mix(in srgb, var(--text) 2%, transparent);
+}
+
 .prose hr {
   border: none;
   border-top: 1px solid var(--border);
@@ -634,12 +668,79 @@ body.dark .hljs-deletion { color: #ff453a; background: color-mix(in srgb, #ff453
   .skills-grid { grid-template-columns: 1fr !important; }
 
   .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Admin editor grids stack on phones */
+  .editor-grid-2 { grid-template-columns: 1fr !important; }
+  .editor-grid-3 { grid-template-columns: 1fr !important; }
+
+  /* 16px+ form text stops iOS auto-zoom on focus */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Journal stat cards: 2x2 instead of 4 squeezed columns */
+  .journal-stats { grid-template-columns: repeat(2, 1fr) !important; }
+
+  /* Admin list rows: actions drop below the title on narrow screens */
+  .admin-row { flex-wrap: wrap; gap: 0.75rem; }
+  .admin-row-actions { margin-left: 0 !important; width: 100%; justify-content: flex-end; }
+
+  /* Tighter card padding on phones */
+  .article-editor { padding: 1.25rem !important; }
+
+  /* Cover image goes full-width on phones */
+  .cover-image { max-width: 100% !important; }
+
+  /* Lightbox breathing room on small screens */
+  .image-lightbox { padding: 1rem !important; }
+
+  /* Heatmap card: tighter padding + scroll fallback so the activity
+     grid never jams edge-to-edge on narrow phones */
+  .heatmap-card { padding: 1rem !important; overflow-x: auto; }
 }
 
 @media (max-width: 480px) {
   .container { padding: 0 1rem; }
   .btn-primary, .btn-secondary { padding: 0.4rem 1rem; font-size: 0.75rem; }
   .stats-grid { grid-template-columns: 1fr !important; }
+}
+
+/* Article cards — plain (no pixel canvas), calm image zoom on hover */
+.article-card {
+  position: relative;
+  overflow: hidden;
+  display: block;
+  min-height: 260px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  transition: border-color 300ms cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 300ms cubic-bezier(0.16, 1, 0.3, 1),
+              transform 300ms cubic-bezier(0.16, 1, 0.3, 1);
+  contain: layout style paint;
+}
+
+.article-card:hover {
+  border-color: var(--border-hover);
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+
+.article-card-plain {
+  cursor: pointer;
+}
+
+.article-card-plain .article-card-img {
+  transition: transform 500ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.article-card-plain:hover .article-card-img {
+  transform: scale(1.04);
+}
+
+@media (hover: none) {
+  .article-card-plain:hover .article-card-img {
+    transform: none;
+  }
 }
 
 /* Link used in "View all" type actions — replaces inline onMouseEnter/Leave */

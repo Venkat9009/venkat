@@ -40,6 +40,7 @@ export default function Navbar() {
   const navLinks = [
     { href: "/", label: "Home", active: pathname === "/" },
     { href: "/blog", label: "Articles", active: pathname.startsWith("/blog") },
+    { href: "/journal", label: "Journal", active: pathname.startsWith("/journal") },
     { href: "/about", label: "About", active: pathname === "/about" },
   ];
 

@@ -43,13 +43,23 @@ export async function POST(request: NextRequest) {
 
   const { slug, action } = body;
 
-  if (!slug) {
+  if (!slug || typeof slug !== "string" || slug.length > 200) {
     return NextResponse.json({ error: "Missing slug" }, { status: 400 });
   }
 
   const delta = action === "unlike" ? -1 : 1;
 
   try {
+    // Don't let anyone inflate counts on unpublished drafts.
+    const { data: article } = await supabase
+      .from("articles")
+      .select("id,published")
+      .eq("slug", slug)
+      .single();
+    if (!article || !article.published) {
+      return NextResponse.json({ error: "Article not found" }, { status: 404 });
+    }
+
     const { data, error } = await db.rpc("increment_article_counter", {
       p_slug: slug,
       p_column: "like_count",

@@ -56,12 +56,16 @@ export default function NewsletterSignup() {
         <p style={{ fontSize: "0.85rem", color: "var(--badge-green-text)", fontWeight: 500 }}>{message}</p>
       ) : (
         <form onSubmit={handleSubmit} style={{ display: "flex", gap: "0.5rem", maxWidth: "380px", margin: "0 auto" }}>
+          {/* Honeypot for bots — hidden from humans */}
+          <input type="text" name="website" tabIndex={-1} autoComplete="off" aria-hidden="true" style={{ position: "absolute", left: "-9999px", opacity: 0, height: 0, width: 0 }} onChange={() => {}} />
           <input
             type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="you@example.com"
             required
+            maxLength={254}
+            aria-label="Email address"
             style={{
               flex: 1,
               padding: "0.6rem 0.85rem",

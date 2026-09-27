@@ -102,3 +102,24 @@
   background: var(--bg-card);
   contain: layout style paint;
 }
+
+/* NOTE: plain `.article-card` / `.article-card-plain` styles live in
+   src/app/globals.css so they load even when PixelCard is unused. */
+
+/* Full dissolve on hover: content stays visible by default,
+   pixels overlay on top when hovered/focused, then clear on leave. */
+.pixel-card-dissolve .pixel-canvas {
+  z-index: 2;
+}
+
+.pixel-card-dissolve .pixel-card-content {
+  opacity: 1;
+  filter: none;
+  transform: scale(1);
+}
+
+@media (hover: none) {
+  .pixel-card-dissolve .pixel-canvas {
+    display: none;
+  }
+}

@@ -1,13 +1,26 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+
+function readSeen(): string[] {
+  try {
+    const raw = sessionStorage.getItem("viewed_articles");
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((s) => typeof s === "string") : [];
+  } catch {
+    return [];
+  }
+}
 
 export default function ViewCounter({ slug }: { slug: string }) {
   const [views, setViews] = useState<number | null>(null);
+  const didRun = useRef(false);
 
   useEffect(() => {
-    const seenKey = "viewed_articles";
-    const seen: string[] = JSON.parse(sessionStorage.getItem(seenKey) || "[]");
+    if (didRun.current) return;
+    didRun.current = true;
+    const seen = readSeen();
     const alreadyCounted = seen.includes(slug);
 
     const request = alreadyCounted
@@ -23,7 +36,9 @@ export default function ViewCounter({ slug }: { slug: string }) {
       .then((data) => {
         setViews(data.view_count ?? 0);
         if (!alreadyCounted) {
-          sessionStorage.setItem(seenKey, JSON.stringify([...seen, slug]));
+          try {
+            sessionStorage.setItem("viewed_articles", JSON.stringify([...seen, slug]));
+          } catch { /* ignore */ }
         }
       })
       .catch(() => setViews(0));

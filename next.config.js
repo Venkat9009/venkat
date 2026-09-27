@@ -35,6 +35,13 @@ const nextConfig = {
         protocol: "https",
         hostname: "**.supabase.co",
       },
+      // Article content can embed images from any host (pasted URLs).
+      // Without this, next/image throws "Invalid src prop" and the
+      // lightbox/cover never opens for non-Supabase images.
+      {
+        protocol: "https",
+        hostname: "**",
+      },
     ],
   },
   headers: async () => [

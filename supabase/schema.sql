@@ -114,3 +114,25 @@ create table if not exists newsletter_subscribers (
 alter table newsletter_subscribers enable row level security;
 
 -- No public policies: only the service role (server-side) can read/write.
+
+-- ============================================================
+-- Categories (create-first, then select in the article editor)
+-- ============================================================
+-- Categories live in their own table so the article form can offer
+-- a fixed dropdown instead of free text. That stops accidental
+-- duplicates like "Tech" vs "tech" vs "tech " from appearing as
+-- separate filters on the blog page.
+create table if not exists categories (
+  id          uuid primary key default gen_random_uuid(),
+  name        text not null unique,
+  slug        text not null unique,
+  created_at  timestamptz not null default now()
+);
+
+alter table categories enable row level security;
+
+-- Public (anon) can read the list for blog filters; writes only go
+-- through /api/categories with admin auth + service role key.
+create policy "Public can read categories"
+  on categories for select
+  using (true);

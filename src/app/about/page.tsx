@@ -13,17 +13,11 @@ const skills = [
 ];
 
 const timeline = [
-  { year: "2026", title: "Intern — Prompt 2 Prod AI", desc: "Feb 28 \u2013 Jun 14, 2026" },
+  { year: "Sep 2026", title: "DSA Journey", desc: "Actively practicing Data Structures and Algorithms" },
+  { year: "Aug 2026", title: "Intern — A+ Plus Tech Service", desc: "Currently interning \u2014 building real products" },
   { year: "2024", title: "Started B.Tech in Data Science", desc: "Sri Indu College of Engineering (JNTUH)" },
   { year: "2023", title: "Intermediate Completion", desc: "Narayana Junior College \u2014 900 marks" },
   { year: "2021", title: "Schooling Completed", desc: "Bhashyam High School \u2014 GPA 9.2" },
-];
-
-const stats = [
-  { value: "3+", label: "Projects Built" },
-  { value: "10K+", label: "Lines of Code" },
-  { value: "4", label: "Technologies" },
-  { value: "1", label: "Internship" },
 ];
 
 export default function AboutPage() {
@@ -56,53 +50,6 @@ export default function AboutPage() {
 
       <div style={{ borderTop: "1px solid var(--border)", margin: "2.5rem 0" }} />
 
-      {/* Stats */}
-      <div
-        className="animate-in animate-in-delay-1"
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(4, 1fr)",
-          gap: "0.75rem",
-          marginBottom: "2.5rem",
-        }}
-      >
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border)",
-              borderRadius: "var(--radius)",
-              padding: "1.25rem 0.75rem",
-              textAlign: "center",
-            }}
-          >
-            <div
-              style={{
-                fontSize: "1.5rem",
-                fontWeight: 700,
-                color: "var(--accent)",
-                fontFamily: "'Playfair Display', Georgia, serif",
-              }}
-            >
-              {stat.value}
-            </div>
-            <div
-              style={{
-                fontSize: "0.65rem",
-                color: "var(--text-tertiary)",
-                marginTop: "0.2rem",
-                textTransform: "uppercase",
-                letterSpacing: "0.05em",
-                fontWeight: 500,
-              }}
-            >
-              {stat.label}
-            </div>
-          </div>
-        ))}
-      </div>
-
       {/* Timeline */}
       <div className="animate-in animate-in-delay-1" style={{ marginBottom: "2.5rem" }}>
         <h2
@@ -120,7 +67,7 @@ export default function AboutPage() {
         <div style={{ display: "flex", flexDirection: "column", gap: "0" }}>
           {timeline.map((item, i) => (
             <div
-              key={item.year}
+              key={item.title}
               style={{
                 display: "flex",
                 gap: "1rem",

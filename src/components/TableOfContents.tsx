@@ -13,12 +13,28 @@ function extractHeadings(content: string): TocEntry[] {
   const headings: TocEntry[] = [];
   const seen = new Map<string, number>();
   const lines = content.split("\n");
+  let inFence = false;
   for (const line of lines) {
+    const trimmed = line.trim();
+    if (/^```/.test(trimmed)) {
+      inFence = !inFence;
+      continue;
+    }
+    if (inFence) continue;
     const match = /^(#{1,3})\s+(.+)$/.exec(line);
     if (match) {
       const level = match[1].length;
-      const text = match[2].replace(/[*_`~\[\]()]/g, "").trim();
+      // Normalize exactly like the renderer's remarkHeadingIds plugin so TOC
+      // anchors always match the stamped ids: drop images entirely, keep
+      // link text without its URL, then strip the remaining markers.
+      const text = match[2]
+        .replace(/![^\]]*\]\([^)]*\)/g, "")
+        .replace(/\[([^\]]*)\]\([^)]*\)/g, "$1")
+        .replace(/[*_`~\[\]()]/g, "")
+        .trim();
+      if (!text) continue;
       const base = slugifyHeading(text);
+      if (!base) continue;
       const count = seen.get(base) || 0;
       seen.set(base, count + 1);
       const id = count === 0 ? base : `${base}-${count + 1}`;
@@ -33,6 +49,15 @@ export default function TableOfContents({ content }: { content: string }) {
   const [isOpen, setIsOpen] = useState(false);
 
   const headings = useMemo(() => extractHeadings(content), [content]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen]);
 
   useEffect(() => {
     if (headings.length === 0) return;
@@ -79,6 +104,7 @@ export default function TableOfContents({ content }: { content: string }) {
         className="toc-toggle"
         onClick={() => setIsOpen(!isOpen)}
         aria-label="Toggle table of contents"
+        aria-expanded={isOpen}
         style={{
           display: "none",
           position: "fixed",

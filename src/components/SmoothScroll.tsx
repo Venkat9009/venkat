@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { usePathname } from "next/navigation";
 import Lenis from "lenis";
 
 declare global {
@@ -11,6 +12,8 @@ declare global {
 
 export default function SmoothScroll({ children }: { children: React.ReactNode }) {
   const rafRef = useRef<number>(0);
+  const pathname = usePathname();
+  const isFirstLoad = useRef(true);
 
   useEffect(() => {
     const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -44,6 +47,24 @@ export default function SmoothScroll({ children }: { children: React.ReactNode }
       window.__lenis = undefined;
     };
   }, []);
+
+  // Next.js scrolls window to top on navigation, but Lenis owns the scroll
+  // position and swallows it — so article clicks kept the old offset.
+  // Reset through Lenis (instant, before the enter animation) on every
+  // pathname change. Query-only changes (blog filters) keep the pathname,
+  // so they correctly stay put.
+  useEffect(() => {
+    if (isFirstLoad.current) {
+      isFirstLoad.current = false;
+      return;
+    }
+    const lenis = window.__lenis;
+    if (lenis) {
+      lenis.scrollTo(0, { immediate: true });
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, [pathname]);
 
   return <>{children}</>;
 }

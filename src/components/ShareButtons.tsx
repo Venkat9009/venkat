@@ -5,10 +5,15 @@ import { useState, useRef } from "react";
 interface ShareButtonsProps {
   title: string;
   slug: string;
+  siteUrl: string;
 }
 
-export default function ShareButtons({ title, slug }: ShareButtonsProps) {
-  const url = typeof window === "undefined" ? "" : `${window.location.origin}/blog/${slug}`;
+export default function ShareButtons({ title, slug, siteUrl }: ShareButtonsProps) {
+  // Built from a server-provided canonical URL so SSR and hydration render
+  // byte-identical hrefs. (Reading window.location during render made the
+  // server emit an empty URL and the client the full one — a hydration
+  // mismatch on every article page.)
+  const url = `${siteUrl}/blog/${slug}`;
   const [copied, setCopied] = useState(false);
   const timeoutRef = useRef<ReturnType<typeof setTimeout>>(null);
 

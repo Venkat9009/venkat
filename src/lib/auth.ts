@@ -46,7 +46,9 @@ function isValidToken(token: string | null | undefined): boolean {
     );
     if (!sigMatch) return false;
 
-    return !!process.env.ADMIN_USER;
+    const adminUser = process.env.ADMIN_USER || "";
+    if (!adminUser || user.length !== adminUser.length) return false;
+    return crypto.timingSafeEqual(Buffer.from(user), Buffer.from(adminUser));
   } catch {
     return false;
   }

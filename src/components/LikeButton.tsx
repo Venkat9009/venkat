@@ -4,14 +4,19 @@ import { useState, useEffect } from "react";
 
 export default function LikeButton({ slug }: { slug: string }) {
   const [likes, setLikes] = useState<number | null>(null);
-  const [liked, setLiked] = useState(() => {
-    if (typeof window === "undefined") return false;
-    const likedArticles = JSON.parse(localStorage.getItem("liked_articles") || "[]");
-    return likedArticles.includes(slug);
+  const [liked, setLiked] = useState<boolean>(() => {
+    try {
+      if (typeof window === "undefined") return false;
+      const raw = window.localStorage.getItem("liked_articles");
+      const parsed: unknown = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) && parsed.includes(slug);
+    } catch {
+      return false;
+    }
   });
 
   useEffect(() => {
-    fetch(`/api/articles/like?slug=${slug}`)
+    fetch(`/api/articles/like?slug=${encodeURIComponent(slug)}`)
       .then((r) => r.json())
       .then((data) => setLikes(data.like_count ?? 0))
       .catch(() => setLikes(0));
@@ -30,13 +35,17 @@ export default function LikeButton({ slug }: { slug: string }) {
       setLiked(!liked);
 
       // Persist liked state in localStorage
-      const likedArticles = JSON.parse(localStorage.getItem("liked_articles") || "[]");
-      if (liked) {
-        localStorage.setItem("liked_articles", JSON.stringify(likedArticles.filter((s: string) => s !== slug)));
-      } else {
-        likedArticles.push(slug);
-        localStorage.setItem("liked_articles", JSON.stringify(likedArticles));
-      }
+      try {
+        const raw = localStorage.getItem("liked_articles");
+        const likedArticles: string[] = raw ? JSON.parse(raw) : [];
+        const list = Array.isArray(likedArticles) ? likedArticles : [];
+        if (liked) {
+          localStorage.setItem("liked_articles", JSON.stringify(list.filter((s: string) => s !== slug)));
+        } else {
+          if (!list.includes(slug)) list.push(slug);
+          localStorage.setItem("liked_articles", JSON.stringify(list));
+        }
+      } catch { /* storage unavailable or corrupted — ignore */ }
     } catch { /* ignore */ }
   };
 

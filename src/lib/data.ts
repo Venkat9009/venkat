@@ -1,5 +1,12 @@
 import { supabase, db } from "./supabase";
-import type { Article, ArticleListItem } from "@/types";
+import type { Article, ArticleListItem, Category } from "@/types";
+import { countWords, calcReadingTime } from "./text";
+
+// Re-exported so existing server-side importers keep working. Client
+// components must import from "@/lib/text" directly instead.
+export { countWords, calcReadingTime };
+export { JOURNAL_CATEGORY } from "./text";
+import { JOURNAL_CATEGORY } from "./text";
 
 function mapArticle(a: Record<string, unknown>): Article {
   return {
@@ -26,7 +33,13 @@ function mapArticle(a: Record<string, unknown>): Article {
 export async function getArticles(publishedOnly = false, category?: string): Promise<Article[]> {
   let query = supabase.from("articles").select("*").order("created_at", { ascending: false });
   if (publishedOnly) query = query.eq("published", true);
-  if (category) query = query.eq("category", category);
+  if (category) {
+    query = query.eq("category", category);
+  } else if (publishedOnly) {
+    // Journal lives on its own page (/journal) — never mix it into blog
+    // listings, RSS, sitemap, or the public articles API.
+    query = query.neq("category", JOURNAL_CATEGORY);
+  }
   const { data, error } = await query;
   if (error) throw error;
   return (data || []).map((a) => mapArticle(a));
@@ -37,6 +50,7 @@ export async function getArticleList(limit = 6): Promise<ArticleListItem[]> {
     .from("articles")
     .select("id, title, slug, excerpt, category, published, cover_image, tags, mood, series, view_count, like_count, created_at")
     .eq("published", true)
+    .neq("category", JOURNAL_CATEGORY)
     .order("created_at", { ascending: false })
     .limit(limit);
   if (error) throw error;
@@ -95,8 +109,8 @@ export async function createArticle(data: {
   series?: string;
 }): Promise<Article> {
   const now = new Date().toISOString();
-  const wordCount = data.content.split(/\s+/).filter(Boolean).length;
-  const readingTime = Math.max(1, Math.ceil(wordCount / 200));
+  const wordCount = countWords(data.content);
+  const readingTime = calcReadingTime(wordCount);
 
   const { data: article, error } = await db
     .from("articles")
@@ -128,8 +142,9 @@ export async function updateArticle(id: string, data: Partial<Article>): Promise
   if (data.slug !== undefined) update.slug = data.slug;
   if (data.content !== undefined) {
     update.content = data.content;
-    update.word_count = data.content.split(/\s+/).filter(Boolean).length;
-    update.reading_time = Math.max(1, Math.ceil(update.word_count as number / 200));
+    const wc = countWords(data.content);
+    update.word_count = wc;
+    update.reading_time = calcReadingTime(wc);
   }
   if (data.excerpt !== undefined) update.excerpt = data.excerpt;
   if (data.category !== undefined) update.category = data.category;
@@ -155,9 +170,71 @@ export async function deleteArticle(id: string): Promise<boolean> {
 }
 
 export async function getCategories(): Promise<string[]> {
-  const { data } = await supabase.from("articles").select("category").eq("published", true);
+  // Preferred source: the categories table (create-first, select-later).
+  // Falls back to distinct article categories so the blog keeps working
+  // before the migration is run or when the table is still empty.
+  try {
+    const { data, error } = await supabase
+      .from("categories")
+      .select("name")
+      .order("name", { ascending: true });
+    if (!error && data && data.length > 0) {
+      return data
+        .map((c: { name: string }) => c.name)
+        .filter((name) => name !== JOURNAL_CATEGORY);
+    }
+  } catch {
+    // Table may not exist yet — fall through to the legacy derivation.
+  }
+  const { data } = await supabase.from("articles").select("category").eq("published", true).neq("category", JOURNAL_CATEGORY);
   const cats = new Set((data || []).map((a: { category: string }) => a.category));
-  return Array.from(cats);
+  return Array.from(cats).sort((a, b) => a.localeCompare(b));
+}
+
+function mapCategory(c: Record<string, unknown>): Category {
+  return {
+    id: c.id as string,
+    name: c.name as string,
+    slug: c.slug as string,
+    createdAt: c.created_at as string,
+  };
+}
+
+export function slugifyCategory(name: string): string {
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
+export async function getCategoryList(): Promise<Category[]> {
+  const { data, error } = await db
+    .from("categories")
+    .select("*")
+    .order("name", { ascending: true });
+  if (error) throw error;
+  return (data || []).map((c) => mapCategory(c));
+}
+
+export async function createCategory(name: string): Promise<Category> {
+  const clean = name.trim();
+  if (!clean) throw new Error("Category name is required");
+  const slug = slugifyCategory(clean);
+  if (!slug) throw new Error("Category name must contain letters or numbers");
+  const { data, error } = await db
+    .from("categories")
+    .insert({ name: clean, slug })
+    .select()
+    .single();
+  if (error) throw error;
+  return mapCategory(data);
+}
+
+export async function deleteCategory(id: string): Promise<boolean> {
+  const { error } = await db.from("categories").delete().eq("id", id);
+  return !error;
 }
 
 export async function getRelatedArticles(slug: string, category: string, limit = 3): Promise<Article[]> {
@@ -169,6 +246,19 @@ export async function getRelatedArticles(slug: string, category: string, limit =
     .neq("slug", slug)
     .order("created_at", { ascending: false })
     .limit(limit);
-  if (error || !data) return [];
-  return data.map((a) => mapArticle(a));
+  if (error) return [];
+  const primary = (data || []).map((a) => mapArticle(a));
+  if (primary.length >= limit) return primary;
+  // Fallback: fill with most recent articles outside this category so the
+  // section never renders empty when a category has few posts.
+  const exclude = [slug, ...primary.map((a) => a.slug)];
+  const { data: more } = await supabase
+    .from("articles")
+    .select("*")
+    .eq("published", true)
+    .neq("category", JOURNAL_CATEGORY)
+    .not("slug", "in", `(${exclude.map((s) => `"${s}"`).join(",")})`)
+    .order("created_at", { ascending: false })
+    .limit(limit - primary.length);
+  return [...primary, ...(more || []).map((a) => mapArticle(a))];
 }

@@ -11,6 +11,7 @@ import ShareButtons from "@/components/ShareButtons";
 import BackToTop from "@/components/BackToTop";
 import { LazyTableOfContents, LazyRelatedArticles, LazySeriesBadge, LazyNewsletterSignup, LazyViewCounter, LazyLikeButton } from "@/components/LazyBelowFold";
 import { getSiteUrl } from "@/lib/config";
+import { formatDateLong } from "@/lib/format";
 import { getSeriesArticles } from "@/lib/data";
 
 const SITE_URL = getSiteUrl();
@@ -33,9 +34,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const { slug } = await params;
   const article = await getViewableArticle(slug);
   if (!article) return { title: "Article Not Found" };
+  const ogImage = article.cover_image
+    ? [{ url: article.cover_image, width: 1200, height: 630 }]
+    : [{ url: `${SITE_URL}/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`, width: 1200, height: 630 }];
   return {
     title: `${article.title} — Venkat`,
     description: article.excerpt,
+    authors: [{ name: "Venkata Narayana Reddy", url: `${SITE_URL}/about` }],
+    alternates: { canonical: `${SITE_URL}/blog/${article.slug}` },
     openGraph: {
       title: article.title,
       description: article.excerpt,
@@ -43,14 +49,23 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       url: `${SITE_URL}/blog/${article.slug}`,
       publishedTime: article.createdAt,
       modifiedTime: article.updatedAt,
-      ...(article.cover_image && { images: [{ url: article.cover_image, width: 1200, height: 630 }] }),
+      authors: [`${SITE_URL}/about`],
+      tags: article.tags,
+      images: ogImage,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: article.title,
+      description: article.excerpt,
+      images: [ogImage[0].url],
     },
   };
 }
 
 function ReadingMeta({ article }: { article: { reading_time?: number; content?: string; word_count?: number; slug: string; createdAt: string } }) {
-  const readTime = article.reading_time || Math.max(1, Math.ceil((article.content?.length || 0) / 1200));
-  const wordCount = article.word_count || (article.content?.split(/\s+/).length || 0);
+  const words = article.word_count || article.content?.split(/\s+/).filter(Boolean).length || 0;
+  const readTime = article.reading_time || Math.max(1, Math.ceil(words / 200));
+  const wordCount = words;
 
   return (
     <div
@@ -64,11 +79,7 @@ function ReadingMeta({ article }: { article: { reading_time?: number; content?: 
       }}
     >
       <time>
-        {new Date(article.createdAt).toLocaleDateString("en-US", {
-          month: "long",
-          day: "numeric",
-          year: "numeric",
-        })}
+        {formatDateLong(article.createdAt)}
       </time>
       <span style={{ opacity: 0.4 }}>·</span>
       <span>{readTime} min read</span>
@@ -108,7 +119,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     );
   }
 
-  const wordCount = article.word_count || (article.content?.split(/\s+/).length || 0);
+  const wordCount = article.word_count || article.content?.split(/\s+/).filter(Boolean).length || 0;
   const [related, seriesArticles] = await Promise.all([
     getRelatedArticles(article.slug, article.category, 3),
     article.series ? getSeriesArticles(article.series, article.slug) : Promise.resolve([]),
@@ -124,9 +135,12 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
     author: { "@type": "Person", name: "Venkata Narayana Reddy", url: `${SITE_URL}/about` },
     publisher: { "@type": "Person", name: "Venkata Narayana Reddy" },
     mainEntityOfPage: { "@type": "WebPage", "@id": `${SITE_URL}/blog/${article.slug}` },
-    ...(article.cover_image && { image: article.cover_image }),
+    image: article.cover_image
+      ? [article.cover_image]
+      : [`${SITE_URL}/api/og?title=${encodeURIComponent(article.title)}&category=${encodeURIComponent(article.category)}`],
     wordCount,
     articleSection: article.category,
+    keywords: (article.tags || []).join(", "),
   };
 
   return (
@@ -156,7 +170,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
           Back
         </Link>
 
-        <header className="animate-in animate-in-delay-1" style={{ display: "flex", gap: "2rem", alignItems: "flex-start", marginBottom: "2rem" }}>
+        <header className="animate-in animate-in-delay-1 article-header" style={{ display: "flex", gap: "2rem", alignItems: "flex-start", flexWrap: "wrap", marginBottom: "2rem" }}>
           {article.cover_image && (
             <CoverImage src={article.cover_image} alt={article.title} />
           )}
@@ -186,7 +200,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
               }}
             >
               <ReadingMeta article={article} />
-              <ShareButtons title={article.title} slug={article.slug} />
+              <ShareButtons title={article.title} slug={article.slug} siteUrl={SITE_URL} />
             </div>
           </div>
         </header>
@@ -233,7 +247,7 @@ export default async function ArticlePage({ params }: { params: Promise<{ slug: 
             </svg>
             All Articles
           </Link>
-          <ShareButtons title={article.title} slug={article.slug} />
+          <ShareButtons title={article.title} slug={article.slug} siteUrl={SITE_URL} />
         </div>
       </article>
     </>
