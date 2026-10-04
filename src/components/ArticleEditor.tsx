@@ -346,6 +346,7 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
         {activeTab === "write" ? (
           <textarea
             ref={textareaRef}
+            data-lenis-prevent
             value={content}
             onChange={(e) => setContent(e.target.value)}
             onPaste={handlePaste}

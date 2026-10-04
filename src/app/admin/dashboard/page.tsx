@@ -232,6 +232,7 @@ export default function AdminDashboard() {
           </div>
           <textarea
             placeholder="Start writing..."
+            data-lenis-prevent
             value={journalContent}
             onChange={(e) => setJournalContent(e.target.value)}
             autoFocus
