@@ -236,6 +236,7 @@ export default async function HomePage() {
         </div>
         <div
           className="animate-in animate-in-delay-1 heatmap-card"
+          data-lenis-prevent
           style={{
             background: "var(--bg-card)",
             border: "1px solid var(--border)",

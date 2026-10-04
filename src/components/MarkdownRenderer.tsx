@@ -131,12 +131,12 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
           highlighted = hljs.highlightAuto(codeString).value;
         }
         return (
-          <div className="code-block">
+          <div className="code-block" data-lenis-prevent>
             <div className="code-block-header">
               <span className="code-lang">{match[1]}</span>
               <CopyButton text={codeString} />
             </div>
-            <pre className={className} style={{ margin: 0, borderRadius: "0 0 var(--radius-sm) var(--radius-sm)" }}>
+            <pre className={className} data-lenis-prevent style={{ margin: 0, borderRadius: "0 0 var(--radius-sm) var(--radius-sm)" }}>
               <code dangerouslySetInnerHTML={{ __html: highlighted }} />
             </pre>
           </div>

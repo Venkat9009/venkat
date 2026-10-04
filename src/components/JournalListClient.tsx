@@ -226,6 +226,7 @@ export default function JournalListClient({ initialEntries }: JournalListClientP
 
       <div
         className="animate-in animate-in-delay-1 heatmap-card"
+        data-lenis-prevent
         style={{
           background: "var(--bg-card)",
           border: "1px solid var(--border)",

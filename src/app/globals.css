@@ -544,6 +544,7 @@ input:focus {
   padding: 1rem 0;
   max-height: calc(100vh - 120px);
   overflow-y: auto;
+  overscroll-behavior: contain;
   will-change: transform;
   transform: translateZ(0);
   backface-visibility: hidden;
@@ -605,7 +606,16 @@ input:focus {
   margin: 0;
   padding: 1.25rem;
   background: var(--bg-secondary);
+  /* Plain (unhighlighted) code inherits this. Without it, it inherits
+     .prose pre's light color on this light background = invisible
+     brackets/quotes/variables in light mode. */
+  color: var(--text);
   overflow-x: auto;
+  /* Nested scroll: Lenis smooth-wheel hijacks wheel events and scrolls the
+     page instead of this box. data-lenis-prevent (on the element) opts out
+     of Lenis; overscroll-behavior stops scroll-chaining at the edges. */
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
   font-size: 0.85rem;
   line-height: 1.6;
 }
@@ -780,6 +790,7 @@ button:focus-visible,
 .heatmap-card {
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
 }
 
 /* Print */

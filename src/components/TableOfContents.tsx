@@ -152,6 +152,7 @@ export default function TableOfContents({ content }: { content: string }) {
       <nav
         className={`toc ${isOpen ? "toc-open" : ""}`}
         aria-label="Table of contents"
+        data-lenis-prevent
         style={{
           position: isOpen ? "fixed" : "sticky",
           top: isOpen ? "auto" : "100px",
