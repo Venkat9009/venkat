@@ -6,8 +6,18 @@
 
 export const JOURNAL_CATEGORY = "Journal";
 
+export function stripMarkdown(md: string): string {
+  return md
+    .replace(/```[\s\S]*?```/g, " ")
+    .replace(/`[^`]*`/g, " ")
+    .replace(/!\[([^\]]*)\]\([^)]+\)/g, "$1")
+    .replace(/\[([^\]]*)\]\([^)]+\)/g, "$1")
+    .replace(/[#>*_\-~]+/g, " ")
+    .replace(/\|/g, " ");
+}
+
 export function countWords(content: string): number {
-  return content.split(/\s+/).filter(Boolean).length;
+  return stripMarkdown(content).split(/\s+/).filter(Boolean).length;
 }
 
 export function calcReadingTime(wordCount: number): number {

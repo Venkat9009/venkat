@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import Link from "next/link";
 import Navbar from "@/components/Navbar";
@@ -9,9 +9,23 @@ import { getSiteUrl } from "@/lib/config";
 
 const SITE_URL = getSiteUrl();
 
+export const viewport: Viewport = {
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#000000" },
+  ],
+  // Matches :root --bg #ffffff and body.dark --bg #000000 in globals.css.
+  // Tints native form controls + scrollbars to theme (normal-user polish,
+  // HR sees attention to detail).
+  colorScheme: "light dark",
+};
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
-  title: "Venkat — Developer & Writer",
+  title: {
+    default: "Venkat — Developer & Writer",
+    template: "%s — Venkat",
+  },
   description: "Personal blog about web development, React, CSS, and data science.",
   authors: [{ name: "Venkata Narayana Reddy", url: `${SITE_URL}/about` }],
   creator: "Venkata Narayana Reddy",
@@ -40,9 +54,12 @@ export const metadata: Metadata = {
     },
   },
   icons: {
-    icon: "/profile.jpg",
+    // Single source asset today (public/profile.jpg). Sizes declared so
+    // browsers don't guess; TODO (HR-visible polish): add public/icon.svg
+    // + apple-touch-icon 180x180 for crisp tabs/masks.
+    icon: [{ url: "/profile.jpg", type: "image/jpeg" }],
     shortcut: "/profile.jpg",
-    apple: "/profile.jpg",
+    apple: [{ url: "/profile.jpg", type: "image/jpeg" }],
   },
 };
 
@@ -55,7 +72,7 @@ function Footer() {
           <a href="https://github.com/venkatanarayanareddyp2pai-ops" target="_blank" rel="noopener noreferrer" className="footer-link">GitHub</a>
           <Link href="/journal" className="footer-link">Journal</Link>
           <a href="mailto:nvnreddy9009@gmail.com" className="footer-link">Email</a>
-          <Link href="/admin/login" className="footer-link">Admin</Link>
+          <Link href="/admin/login" rel="nofollow" className="footer-link">Admin</Link>
         </div>
       </div>
     </footer>

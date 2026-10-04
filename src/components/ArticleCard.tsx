@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { formatDateLong, formatDateShort } from "@/lib/format";
 import type { ArticleListItem } from "@/types";
 
@@ -15,6 +16,7 @@ export default function ArticleCard({ article, index = 0, compactDate = false }:
   return (
     <Link
       href={`/blog/${article.slug}`}
+      aria-label={`Read: ${article.title}`}
       style={{
         display: "block",
         textDecoration: "none",
@@ -34,13 +36,13 @@ export default function ArticleCard({ article, index = 0, compactDate = false }:
           }}
         >
           {hasCover && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={article.cover_image}
+            <Image
+              src={article.cover_image as string}
               alt=""
-              loading="lazy"
-              decoding="async"
               aria-hidden
+              fill
+              loading="lazy"
+              sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
               className="article-card-img"
               style={{
                 position: "absolute",
@@ -92,7 +94,12 @@ export default function ArticleCard({ article, index = 0, compactDate = false }:
                 letterSpacing: "-0.01em",
                 marginBottom: "0.35rem",
                 lineHeight: 1.3,
-              }}
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                display: "-webkit-box",
+                WebkitLineClamp: 2,
+                WebkitBoxOrient: "vertical",
+              } as React.CSSProperties}
             >
               {article.title}
             </h2>

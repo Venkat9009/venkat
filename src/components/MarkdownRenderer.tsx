@@ -99,16 +99,26 @@ export default function MarkdownRenderer({ content }: MarkdownRendererProps) {
           className="blog-image"
           style={{ borderRadius: "var(--radius)", maxWidth: "100%", height: "auto", margin: "1.5rem auto", display: "block", cursor: "zoom-in" }}
           onClick={() => setLightbox({ src: url, alt: alt || "" })}
-          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+          onError={(e) => {
+            const el = e.currentTarget as HTMLImageElement;
+            el.style.display = "none";
+            el.style.margin = "0";
+          }}
           {...props}
         />
       );
     },
-    a: ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
-      <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
-        {children}
-      </a>
-    ),
+    a: ({ href, children, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => {
+      const isExternal = typeof href === "string" && /^(https?:)?\/\//i.test(href);
+      if (!isExternal) {
+        return <a href={href} {...props}>{children}</a>;
+      }
+      return (
+        <a href={href} target="_blank" rel="noopener noreferrer" {...props}>
+          {children}
+        </a>
+      );
+    },
     code({ className, children, ...props }: React.HTMLAttributes<HTMLElement> & { className?: string }) {
       const match = /language-(\w+)/.exec(className || "");
       const codeString = String(children).replace(/\n$/, "");

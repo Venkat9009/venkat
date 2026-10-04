@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import type { ArticleListItem } from "@/types";
+import type { ArticleWithContent } from "@/types";
 import CalendarHeatmap from "@/components/CalendarHeatmap";
 import MoodIcon from "@/components/MoodIcon";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
@@ -22,7 +22,10 @@ const moodIcons: Record<string, string> = {
 };
 
 interface JournalListClientProps {
-  initialEntries: ArticleListItem[];
+  // Server passes full Articles (with content/word_count); ListItem alone
+  // only has excerpt, which undercounts words ~10x. Accept both — data
+  // fix only, no visual change.
+  initialEntries: ArticleWithContent[];
 }
 
 export default function JournalListClient({ initialEntries }: JournalListClientProps) {
@@ -34,7 +37,7 @@ export default function JournalListClient({ initialEntries }: JournalListClientP
   const [loadingSlug, setLoadingSlug] = useState<string | null>(null);
   const [failedSlug, setFailedSlug] = useState<string | null>(null);
 
-  const toggleEntry = (entry: ArticleListItem) => {
+  const toggleEntry = (entry: ArticleWithContent) => {
     if (openId === entry.id) {
       setOpenId(null);
       return;
@@ -67,7 +70,7 @@ export default function JournalListClient({ initialEntries }: JournalListClientP
     ? entries.filter((e) => e.mood === selectedMood)
     : entries;
 
-  const groupedByMonth = useMemo(() => filtered.reduce<Record<string, ArticleListItem[]>>((acc, entry) => {
+  const groupedByMonth = useMemo(() => filtered.reduce<Record<string, ArticleWithContent[]>>((acc, entry) => {
     const key = formatMonthKey(entry.createdAt);
     if (!acc[key]) acc[key] = [];
     acc[key].push(entry);
@@ -76,11 +79,16 @@ export default function JournalListClient({ initialEntries }: JournalListClientP
 
   const monthlySummaries = useMemo(() => {
     return Object.entries(groupedByMonth).map(([month, monthEntries]) => {
-      const wordCount = monthEntries.reduce((sum, e) => sum + countWords(e.excerpt || ""), 0);
-      const moods = monthEntries.map((e) => e.mood).filter(Boolean);
-      const topMood = moods.sort((a, b) =>
-        moods.filter((v) => v === a).length - moods.filter((v) => v === b).length
-      ).pop();
+      // Prefer stored word_count, then full content, then excerpt fallback.
+      // countWords strips markdown internally so code fences don't inflate.
+      const wordCount = monthEntries.reduce(
+        (sum, e) => sum + (e.word_count || countWords(e.content || e.excerpt || "")),
+        0
+      );
+      const moods = monthEntries.map((e) => e.mood).filter(Boolean) as string[];
+      const topMood = [...moods]
+        .sort((a, b) => moods.filter((v) => v === a).length - moods.filter((v) => v === b).length)
+        .pop();
       return { month, count: monthEntries.length, wordCount, topMood };
     });
   }, [groupedByMonth]);
@@ -195,6 +203,7 @@ export default function JournalListClient({ initialEntries }: JournalListClientP
                 color: "var(--text)",
                 fontFamily: "'Playfair Display', Georgia, serif",
                 lineHeight: 1.1,
+                fontVariantNumeric: "tabular-nums",
               }}
             >
               {stat.value}
@@ -328,8 +337,8 @@ export default function JournalListClient({ initialEntries }: JournalListClientP
                     {month}
                   </h2>
                   {summary && (
-                    <span style={{ fontSize: "0.7rem", color: "var(--text-tertiary)" }}>
-                      {summary.count} {summary.count === 1 ? "entry" : "entries"}
+                    <span style={{ fontSize: "0.7rem", color: "var(--text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
+                      {summary.count} {summary.count === 1 ? "entry" : "entries"} · {summary.wordCount.toLocaleString()} words
                       {summary.topMood && (
                         <span
                           style={{

@@ -29,13 +29,14 @@ export const supabase = lazyClient(() =>
   createClient(getSupabaseUrl(), getSupabaseAnonKey())
 );
 
-// Writes use the service role when available; otherwise they fall back to
-// the anon client and will fail against RLS instead of crashing on startup.
-// The key is read lazily inside init (not at import time) so late-injected
-// env vars in tests still work.
+// Writes and admin reads use the service role. Throws at call time (not
+// import time) if the key is missing, so `next build` without secrets still
+// succeeds but prod fails loudly instead of silently falling back to anon
+// and hitting RLS 500s.
 export const db = lazyClient(() => {
   const serviceRoleKey = getServiceRoleKey();
-  return serviceRoleKey
-    ? createClient(getSupabaseUrl(), serviceRoleKey)
-    : createClient(getSupabaseUrl(), getSupabaseAnonKey());
+  if (!serviceRoleKey) {
+    throw new Error("Missing SUPABASE_SERVICE_ROLE_KEY environment variable");
+  }
+  return createClient(getSupabaseUrl(), serviceRoleKey);
 });

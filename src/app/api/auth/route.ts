@@ -40,14 +40,14 @@ export async function POST(request: NextRequest) {
   // the httpOnly cookie, which the browser sends automatically on
   // same-origin requests. Keeping it out of the JSON body and out of
   // localStorage means an XSS on the site can't steal a long-lived
-  // (24h) admin credential.
+  // (12h) admin credential. Changing ADMIN_PASS revokes all sessions.
   const response = NextResponse.json({ ok: true });
   response.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24, // 24 hours
+    maxAge: 60 * 60 * 12, // 12 hours — matches TOKEN_EXPIRY_MS
   });
 
   return response;

@@ -50,7 +50,7 @@ export default function CoverImage({ src, alt }: { src: string; alt: string }) {
             fill
             priority
             sizes="(max-width: 640px) 100vw, 280px"
-            style={{ objectFit: "cover" }}
+            style={{ objectFit: "contain", objectPosition: "center" }}
             onError={() => setFailed(true)}
           />
         ) : (
@@ -62,7 +62,7 @@ export default function CoverImage({ src, alt }: { src: string; alt: string }) {
             fetchPriority="high"
             decoding="async"
             onError={() => setFailed(true)}
-            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "contain", objectPosition: "center" }}
           />
         )}
       </div>

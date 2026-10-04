@@ -1,16 +1,33 @@
 import { ImageResponse } from "next/og";
+import { getSiteUrl } from "@/lib/config";
 
 export const runtime = "nodejs";
+export const contentType = "image/png";
+
+function clampParam(value: string | null, fallback: string, max: number): string {
+  const v = (value || fallback).trim();
+  const base = v || fallback;
+  return base.length > max ? base.slice(0, max - 1) + "…" : base;
+}
 
 export async function GET(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const title = searchParams.get("title") || "Venkat — Developer & Writer";
-  const subtitle = searchParams.get("subtitle") || "";
-  const category = searchParams.get("category") || "";
+  try {
+    const { searchParams } = new URL(request.url);
+    // Truncate: unbounded ?title= overflowed 1200x630 and enabled
+    // cache-busting DoS. No visual change for normal titles.
+    const title = clampParam(searchParams.get("title"), "Venkat — Developer & Writer", 120);
+    const subtitle = clampParam(searchParams.get("subtitle"), "", 200);
+    const category = clampParam(searchParams.get("category"), "", 30);
+    let host = "venkat.dev";
+    try {
+      host = new URL(getSiteUrl()).host;
+    } catch {
+      // keep fallback
+    }
 
-  return new ImageResponse(
-    (
-      <div
+    return new ImageResponse(
+      (
+        <div
         style={{
           height: "100%",
           width: "100%",
@@ -107,13 +124,20 @@ export async function GET(request: Request) {
             fontSize: "16px",
           }}
         >
-          venkat.dev
+        {host}
         </div>
       </div>
-    ),
-    {
-      width: 1200,
-      height: 630,
-    }
-  );
+      ),
+      {
+        width: 1200,
+        height: 630,
+        headers: {
+          "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
+        },
+      }
+    );
+  } catch (e) {
+    console.error("[og]", e);
+    return new Response("Failed to render image", { status: 500 });
+  }
 }

@@ -3,7 +3,7 @@ import CoverImage from "@/components/CoverImage";
 import { cookies } from "next/headers";
 import type { Metadata } from "next";
 import { cache } from "react";
-import { getArticleBySlug, getArticleById, getRelatedArticles } from "@/lib/data";
+import { getArticleBySlug, getArticleById, getArticleBySlugAdmin, getArticleByIdAdmin, getRelatedArticles } from "@/lib/data";
 import { checkAuthFromCookie, SESSION_COOKIE } from "@/lib/auth";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
 import ReadingProgressBar from "@/components/ReadingProgressBar";
@@ -16,16 +16,22 @@ import { getSeriesArticles } from "@/lib/data";
 
 const SITE_URL = getSiteUrl();
 
+// Per-request memo (React cache): keyed by slug within a single request.
+// Safe across users because cookies() makes the request dynamic — Next
+// never shares this cache between different admin/public requests.
+// Do NOT hoist to a global Map without keying by isAdmin.
 const getViewableArticle = cache(async (slug: string) => {
-  let article = await getArticleBySlug(slug);
-  if (!article) article = await getArticleById(slug);
+  const cookieStore = await cookies();
+  const isAdmin = checkAuthFromCookie(cookieStore.get(SESSION_COOKIE)?.value);
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(slug);
+
+  // Admins read via service role so drafts preview; public reads go
+  // through anon + RLS so drafts are invisible.
+  let article = isAdmin ? await getArticleBySlugAdmin(slug) : await getArticleBySlug(slug);
+  if (!article && isUuid) article = isAdmin ? await getArticleByIdAdmin(slug) : await getArticleById(slug);
   if (!article) return null;
 
-  if (!article.published) {
-    const cookieStore = await cookies();
-    const isAdmin = checkAuthFromCookie(cookieStore.get(SESSION_COOKIE)?.value);
-    if (!isAdmin) return null;
-  }
+  if (!article.published && !isAdmin) return null;
 
   return article;
 });

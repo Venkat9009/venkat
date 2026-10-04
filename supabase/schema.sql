@@ -45,9 +45,33 @@ create index if not exists articles_category_idx
 -- ============================================================
 alter table articles enable row level security;
 
+-- Recreate cleanly on re-run (idempotent upgrades).
+drop policy if exists "Public can read published articles" on articles;
 create policy "Public can read published articles"
   on articles for select
+  to anon, authenticated
   using (published = true);
+
+-- Explicit deny-by-default: even if a permissive policy is added later by
+-- mistake, these make anon writes fail closed. Normal user never sees this;
+-- dev sees clear "policy" errors instead of silent writes.
+drop policy if exists "No anon inserts" on articles;
+create policy "No anon inserts"
+  on articles for insert
+  to anon, authenticated
+  with check (false);
+
+drop policy if exists "No anon updates" on articles;
+create policy "No anon updates"
+  on articles for update
+  to anon, authenticated
+  using (false);
+
+drop policy if exists "No anon deletes" on articles;
+create policy "No anon deletes"
+  on articles for delete
+  to anon, authenticated
+  using (false);
 
 -- Admin dashboard reads unpublished drafts too, but it only ever
 -- calls this through server-side code using the service role key,
@@ -59,6 +83,13 @@ create policy "Public can read published articles"
 
 -- ============================================================
 -- Atomic counter increment (eliminates read-then-write races)
+--
+-- Hardened: SECURITY DEFINER + revoked from anon/public so the anon key
+-- (which is public via NEXT_PUBLIC_*) cannot call it directly with an
+-- arbitrary p_delta. Only the service-role client (server-side API routes,
+-- which enforce rate limits + published checks) may increment.
+-- The function itself also enforces published=true and delta IN (-1,1).
+-- After running this, re-run it on your existing project to upgrade.
 -- ============================================================
 create or replace function public.increment_article_counter(
   p_slug text,
@@ -67,6 +98,7 @@ create or replace function public.increment_article_counter(
 ) returns integer
 language plpgsql
 volatile
+security definer
 set search_path = public
 as $$
 declare
@@ -75,6 +107,19 @@ begin
   -- Only these two columns may ever be incremented.
   if p_column not in ('like_count', 'view_count') then
     raise exception 'invalid counter column';
+  end if;
+
+  -- Clamp delta: likes may +1/-1, views may only +1.
+  if p_delta not in (-1, 1) then
+    raise exception 'invalid delta';
+  end if;
+  if p_column = 'view_count' and p_delta <> 1 then
+    raise exception 'invalid delta';
+  end if;
+
+  -- Never count drafts or missing articles.
+  if not exists (select 1 from articles where slug = p_slug and published = true) then
+    return 0;
   end if;
 
   execute format(
@@ -88,6 +133,19 @@ begin
 end;
 $$;
 
+-- Only service_role (server-side) may execute. Revoke from anon/public
+-- so a leaked anon key cannot bypass API rate limits.
+revoke all on function public.increment_article_counter(text, text, integer) from public, anon, authenticated;
+grant execute on function public.increment_article_counter(text, text, integer) to service_role;
+-- Pin owner so a dump restored under a low-priv role can't escalate via
+-- SECURITY DEFINER. Run once as postgres / project owner.
+do $$ begin
+  begin
+    alter function public.increment_article_counter(text, text, integer) owner to postgres;
+  exception when others then null;
+  end;
+end $$;
+
 -- ============================================================
 -- Storage bucket for cover images / uploaded photos
 -- ============================================================
@@ -95,9 +153,30 @@ insert into storage.buckets (id, name, public)
 values ('blog-images', 'blog-images', true)
 on conflict (id) do nothing;
 
+drop policy if exists "Public can view blog images" on storage.objects;
 create policy "Public can view blog images"
   on storage.objects for select
+  to anon, authenticated
   using (bucket_id = 'blog-images');
+
+-- Explicit deny writes from anon: uploads must go via /api/upload.
+drop policy if exists "No anon image inserts" on storage.objects;
+create policy "No anon image inserts"
+  on storage.objects for insert
+  to anon, authenticated
+  with check (false);
+
+drop policy if exists "No anon image updates" on storage.objects;
+create policy "No anon image updates"
+  on storage.objects for update
+  to anon, authenticated
+  using (false);
+
+drop policy if exists "No anon image deletes" on storage.objects;
+create policy "No anon image deletes"
+  on storage.objects for delete
+  to anon, authenticated
+  using (false);
 
 -- Uploads go through /api/upload, which checks admin auth itself
 -- and writes with the service role key, bypassing this policy —
@@ -133,6 +212,26 @@ alter table categories enable row level security;
 
 -- Public (anon) can read the list for blog filters; writes only go
 -- through /api/categories with admin auth + service role key.
+drop policy if exists "Public can read categories" on categories;
 create policy "Public can read categories"
   on categories for select
+  to anon, authenticated
   using (true);
+
+drop policy if exists "No anon category writes" on categories;
+create policy "No anon category writes"
+  on categories for insert
+  to anon, authenticated
+  with check (false);
+
+drop policy if exists "No anon category updates" on categories;
+create policy "No anon category updates"
+  on categories for update
+  to anon, authenticated
+  using (false);
+
+drop policy if exists "No anon category deletes" on categories;
+create policy "No anon category deletes"
+  on categories for delete
+  to anon, authenticated
+  using (false);

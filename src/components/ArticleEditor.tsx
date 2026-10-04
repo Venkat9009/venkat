@@ -2,6 +2,8 @@
 
 import { useState, useRef, useEffect } from "react";
 import type { Article, Category } from "@/types";
+import MarkdownRenderer from "./MarkdownRenderer";
+import { countWords, calcReadingTime } from "@/lib/text";
 
 interface ArticleEditorProps {
   article?: Article;
@@ -23,7 +25,9 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [contentUploading, setContentUploading] = useState(false);
+  const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
   const [error, setError] = useState("");
   const [showOptional, setShowOptional] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -63,8 +67,9 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
     }
   };
 
-  const uploadFile = async (file: File): Promise<string | null> => {
-    setUploading(true);
+  const uploadFile = async (file: File, kind: "cover" | "content"): Promise<string | null> => {
+    if (kind === "cover") setCoverUploading(true);
+    else setContentUploading(true);
     try {
       const fd = new FormData();
       fd.append("file", file);
@@ -74,14 +79,33 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
     } catch {
       return null;
     } finally {
-      setUploading(false);
+      if (kind === "cover") setCoverUploading(false);
+      else setContentUploading(false);
+    }
+  };
+
+  const insertContentImage = (url: string) => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart ?? content.length;
+      const end = textarea.selectionEnd ?? content.length;
+      const before = content.slice(0, start);
+      const after = content.slice(end);
+      setContent(before + `\n\n![image](${url})\n\n` + after);
+      requestAnimationFrame(() => {
+        textarea.focus();
+        const pos = start + `\n\n![image](${url})\n\n`.length;
+        textarea.setSelectionRange(pos, pos);
+      });
+    } else {
+      setContent((c) => c + `\n\n![image](${url})\n\n`);
     }
   };
 
   const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = await uploadFile(file);
+    const url = await uploadFile(file, "cover");
     if (url) {
       setCoverImage(url);
       setError("");
@@ -94,23 +118,36 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
   const handleContentImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const url = await uploadFile(file);
+    const url = await uploadFile(file, "content");
     if (!url) {
       setError("Image upload failed. Check your connection and try again.");
       e.target.value = "";
       return;
     }
-    const textarea = textareaRef.current;
-    if (textarea) {
-      const start = textarea.selectionStart;
-      const end = textarea.selectionEnd;
-      const before = content.slice(0, start);
-      const after = content.slice(end);
-      setContent(before + `\n\n![image](${url})\n\n` + after);
-    } else {
-      setContent((c) => c + `\n\n![image](${url})\n\n`);
-    }
+    insertContentImage(url);
     e.target.value = "";
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const files = Array.from(e.clipboardData?.files || []).filter((f) => f.type.startsWith("image/"));
+    if (files.length === 0) return;
+    e.preventDefault();
+    for (const file of files) {
+      const url = await uploadFile(file, "content");
+      if (url) insertContentImage(url);
+      else setError("Image upload failed. Check your connection and try again.");
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLTextAreaElement>) => {
+    const files = Array.from(e.dataTransfer?.files || []).filter((f) => f.type.startsWith("image/"));
+    if (files.length === 0) return;
+    e.preventDefault();
+    for (const file of files) {
+      const url = await uploadFile(file, "content");
+      if (url) insertContentImage(url);
+      else setError("Image upload failed. Check your connection and try again.");
+    }
   };
 
   const handleSubmit = async () => {
@@ -253,16 +290,16 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
 
       {/* Cover Image */}
       <div>
-        <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Cover Image</label>
+        <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Cover Image — landscape 1400×1000 looks best</label>
         <div style={{ display: "flex", gap: "0.75rem", alignItems: "center" }}>
-          <button type="button" onClick={() => coverInputRef.current?.click()} className="btn-secondary" style={{ fontSize: "0.78rem", padding: "0.5rem 1rem", flexShrink: 0 }}>
-            {uploading ? "Uploading..." : coverImage ? "Change Image" : "+ Cover Image"}
+          <button type="button" onClick={() => coverInputRef.current?.click()} disabled={coverUploading} className="btn-secondary" style={{ fontSize: "0.78rem", padding: "0.5rem 1rem", flexShrink: 0, opacity: coverUploading ? 0.6 : 1 }}>
+            {coverUploading ? "Uploading..." : coverImage ? "Change Image" : "+ Cover Image"}
           </button>
           <input ref={coverInputRef} type="file" accept="image/*" onChange={handleCoverUpload} style={{ display: "none" }} />
           {coverImage && (
             <div style={{ position: "relative", width: "80px", height: "50px", borderRadius: "8px", overflow: "hidden", border: "1px solid var(--border)" }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={coverImage} alt="Cover preview" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={coverImage} alt="Cover preview" style={{ width: "100%", height: "100%", objectFit: "contain", background: "var(--bg-secondary)" }} />
               <button
                 onClick={() => setCoverImage("")}
                 style={{ position: "absolute", top: "2px", right: "2px", width: "18px", height: "18px", borderRadius: "50%", background: "rgba(0,0,0,0.6)", color: "#fff", border: "none", cursor: "pointer", fontSize: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}
@@ -275,36 +312,70 @@ export default function ArticleEditor({ article, onSaved, onCancel }: ArticleEdi
       </div>
 
       {/* Content Image Upload */}
-      <div style={{ display: "flex", justifyContent: "flex-end" }}>
-        <button type="button" onClick={() => contentImageRef.current?.click()} className="btn-secondary" style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem" }}>
-          {uploading ? "Uploading..." : "+ Insert Image"}
-        </button>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: "0.5rem" }}>
+          <button
+            type="button"
+            onClick={() => setActiveTab("write")}
+            style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem", borderRadius: "8px", border: "1px solid var(--border)", background: activeTab === "write" ? "var(--text)" : "transparent", color: activeTab === "write" ? "var(--bg)" : "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}
+          >
+            Write
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("preview")}
+            style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem", borderRadius: "8px", border: "1px solid var(--border)", background: activeTab === "preview" ? "var(--text)" : "transparent", color: activeTab === "preview" ? "var(--bg)" : "var(--text-secondary)", cursor: "pointer", fontFamily: "inherit" }}
+          >
+            Preview
+          </button>
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <span style={{ fontSize: "0.72rem", color: "var(--text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
+            {countWords(content)} words · {calcReadingTime(countWords(content))} min
+          </span>
+          <button type="button" onClick={() => contentImageRef.current?.click()} disabled={contentUploading} className="btn-secondary" style={{ fontSize: "0.75rem", padding: "0.35rem 0.75rem", opacity: contentUploading ? 0.6 : 1 }}>
+            {contentUploading ? "Uploading..." : "+ Insert Image"}
+          </button>
+        </div>
         <input ref={contentImageRef} type="file" accept="image/*" onChange={handleContentImageUpload} style={{ display: "none" }} />
       </div>
 
       {/* Markdown Content */}
       <div>
-        <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Content (Markdown)</label>
-        <textarea
-          ref={textareaRef}
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          placeholder="Write your article in markdown..."
-          rows={20}
-          style={{
-            width: "100%",
-            padding: "1rem",
-            borderRadius: "10px",
-            border: "1px solid var(--border)",
-            background: "var(--bg)",
-            color: "var(--text)",
-            fontSize: "0.95rem",
-            lineHeight: 1.7,
-            outline: "none",
-            fontFamily: "monospace",
-            resize: "vertical",
-          }}
-        />
+        <label style={{ fontSize: "0.75rem", color: "var(--text-tertiary)", marginBottom: "0.25rem", display: "block" }}>Content (Markdown) — paste or drag-drop images</label>
+        {activeTab === "write" ? (
+          <textarea
+            ref={textareaRef}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            onPaste={handlePaste}
+            onDrop={handleDrop}
+            onDragOver={(e) => e.preventDefault()}
+            placeholder="Write your article in markdown..."
+            rows={20}
+            style={{
+              width: "100%",
+              padding: "1rem",
+              borderRadius: "10px",
+              border: "1px solid var(--border)",
+              background: "var(--bg)",
+              color: "var(--text)",
+              fontSize: "0.95rem",
+              lineHeight: 1.7,
+              outline: "none",
+              fontFamily: "monospace",
+              resize: "vertical",
+            }}
+          />
+        ) : (
+          <div style={{ border: "1px solid var(--border)", borderRadius: "10px", padding: "1rem", background: "var(--bg)", minHeight: "300px" }}>
+            {content.trim() ? (
+              <MarkdownRenderer content={content} />
+            ) : (
+              <p style={{ fontSize: "0.85rem", color: "var(--text-tertiary)" }}>Nothing to preview yet.</p>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Publish toggle */}

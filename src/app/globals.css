@@ -156,7 +156,7 @@ body.dark .navbar-scrolled {
 /* Footer */
 .footer {
   border-top: 1px solid var(--border);
-  padding: 2.5rem 0;
+  padding: 2.5rem 0 6rem;
   margin-top: 5rem;
 }
 
@@ -502,10 +502,10 @@ input:focus {
   top: 1rem;
 }
 
-/* Back to Top — GPU-composited */
+/* Back to Top — GPU-composited (lifted above iPhone dock) */
 .back-to-top {
   position: fixed;
-  bottom: 2rem;
+  bottom: 5.5rem;
   right: 2rem;
   width: 40px;
   height: 40px;
@@ -659,11 +659,11 @@ body.dark .hljs-deletion { color: #ff453a; background: color-mix(in srgb, #ff453
   .footer-inner { flex-direction: column; gap: 1rem; text-align: center; }
   .prose h1 { font-size: 1.85rem; }
   .article-toc-wrapper { display: none; }
-  .back-to-top { bottom: 1.25rem; right: 1.25rem; width: 36px; height: 36px; }
+  /* Dock sits at bottom — lift floating buttons above it */
+  .back-to-top { bottom: 5.5rem; right: 1.25rem; width: 36px; height: 36px; }
 
+  /* iPhone dock: no hamburger needed, tabs always visible */
   .nav-desktop { display: none !important; }
-  .nav-hamburger { display: flex !important; }
-  .nav-mobile-menu { display: flex !important; }
 
   .skills-grid { grid-template-columns: 1fr !important; }
 
@@ -754,6 +754,33 @@ body.dark .hljs-deletion { color: #ff453a; background: color-mix(in srgb, #ff453
   transition: color 0.2s ease;
 }
 .link-muted:hover { color: var(--text); }
+
+/* Keyboard access: visible focus for interactive div-buttons, cards, nav.
+   Normal user with mouse sees nothing; keyboard/HR audit sees clear ring. */
+.cover-image:focus-visible,
+[role="button"]:focus-visible,
+a:focus-visible,
+button:focus-visible,
+.iphone-dock a:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+  border-radius: 8px;
+}
+
+/* iPhone dock — small phones: tighter tabs */
+@media (max-width: 380px) {
+  .iphone-dock a {
+    min-width: 56px !important;
+    padding-left: 0.4rem !important;
+    padding-right: 0.4rem !important;
+  }
+}
+
+/* Heatmap on phones: thin scrollbar + momentum scroll hint. */
+.heatmap-card {
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+}
 
 /* Print */
 @media print {

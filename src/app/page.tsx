@@ -3,7 +3,8 @@ import type { ArticleListItem } from "@/types";
 import ArticleCard from "@/components/ArticleCard";
 import CalendarHeatmap from "@/components/CalendarHeatmap";
 import Typewriter from "@/components/Typewriter";
-import { getArticleList } from "@/lib/data";
+import ProfileAvatar from "@/components/ProfileAvatar";
+import { getArticleList, getPublishedArticleCount } from "@/lib/data";
 
 export const revalidate = 60;
 
@@ -21,11 +22,21 @@ const highlights = [
 
 export default async function HomePage() {
   let articles: ArticleListItem[] = [];
+  let totalCount: number | null = null;
   try {
-    articles = await getArticleList(6);
+    // Exact total via COUNT (scales), full list for heatmap/latest.
+    // Old limit-6 code undercounted once >6 posts existed.
+    const [list, count] = await Promise.all([
+      getArticleList(1000).catch(() => [] as ArticleListItem[]),
+      getPublishedArticleCount().catch(() => null as number | null),
+    ]);
+    articles = list;
+    totalCount = count ?? list.length;
   } catch {
     articles = [];
   }
+  const latest = articles.slice(0, 6);
+  const displayCount = totalCount ?? articles.length;
 
   return (
     <>
@@ -126,27 +137,7 @@ export default async function HomePage() {
             boxShadow: "var(--shadow-sm)",
           }}
         >
-          <div
-            style={{
-              width: "110px",
-              height: "110px",
-              borderRadius: "50%",
-              margin: "0 auto 1.5rem",
-              overflow: "hidden",
-              background: "linear-gradient(135deg, #007aff, #5856d6)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/profile.jpg"
-              alt="Venkat"
-              className="profile-avatar"
-              style={{ width: "100%", height: "100%", objectFit: "cover" }}
-            />
-          </div>
+          <ProfileAvatar />
 
           <h2 style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--text)", marginBottom: "0.25rem", letterSpacing: "-0.01em" }}>
             N.Venkata Narayana Reddy
@@ -239,8 +230,8 @@ export default async function HomePage() {
           <h2 style={{ fontSize: "1.5rem", fontWeight: 650, color: "var(--text)", letterSpacing: "-0.02em" }}>
             Writing Activity
           </h2>
-          <span style={{ fontSize: "0.78rem", color: "var(--text-tertiary)" }}>
-            {articles.length} {articles.length === 1 ? "article" : "articles"} published
+          <span style={{ fontSize: "0.78rem", color: "var(--text-tertiary)", fontVariantNumeric: "tabular-nums" }}>
+            {displayCount} {displayCount === 1 ? "article" : "articles"} published
           </span>
         </div>
         <div
@@ -283,7 +274,7 @@ export default async function HomePage() {
           </div>
         ) : (
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(280px, 100%), 1fr))", gap: "1rem" }}>
-            {articles.slice(0, 6).map((article, i) => {
+            {latest.map((article, i) => {
               return (
                 <ArticleCard key={article.id} article={article} index={i} compactDate />
               );

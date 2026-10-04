@@ -37,11 +37,13 @@ export async function POST(request: NextRequest) {
       .upsert({ email, subscribed_at: new Date().toISOString() }, { onConflict: "email" });
 
     if (error) {
+      console.error("[newsletter POST]", error);
       return NextResponse.json({ error: "Failed to subscribe" }, { status: 500 });
     }
 
     return NextResponse.json({ ok: true });
-  } catch {
+  } catch (e) {
+    console.error("[newsletter POST]", e);
     return NextResponse.json({ error: "Failed to subscribe" }, { status: 500 });
   }
 }
@@ -56,9 +58,13 @@ export async function GET(request: NextRequest) {
       .from("newsletter_subscribers")
       .select("*")
       .order("subscribed_at", { ascending: false });
-    if (error) return NextResponse.json({ subscribers: [] });
+    if (error) {
+      console.error("[newsletter GET]", error);
+      return NextResponse.json({ error: "Failed to load subscribers" }, { status: 500 });
+    }
     return NextResponse.json({ subscribers: data || [] });
-  } catch {
-    return NextResponse.json({ subscribers: [] });
+  } catch (e) {
+    console.error("[newsletter GET]", e);
+    return NextResponse.json({ error: "Failed to load subscribers" }, { status: 500 });
   }
 }

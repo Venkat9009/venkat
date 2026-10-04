@@ -108,7 +108,7 @@ export default function TableOfContents({ content }: { content: string }) {
         style={{
           display: "none",
           position: "fixed",
-          bottom: "1.5rem",
+          bottom: "5.5rem",
           right: "1.5rem",
           zIndex: 50,
           width: "44px",

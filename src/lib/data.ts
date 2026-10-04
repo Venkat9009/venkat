@@ -31,6 +31,9 @@ function mapArticle(a: Record<string, unknown>): Article {
 }
 
 export async function getArticles(publishedOnly = false, category?: string): Promise<Article[]> {
+  // Public path uses the anon client (RLS enforces published=true).
+  // Admin callers needing drafts must use getArticlesAdmin() below, which
+  // uses the service-role client that bypasses RLS.
   let query = supabase.from("articles").select("*").order("created_at", { ascending: false });
   if (publishedOnly) query = query.eq("published", true);
   if (category) {
@@ -43,6 +46,29 @@ export async function getArticles(publishedOnly = false, category?: string): Pro
   const { data, error } = await query;
   if (error) throw error;
   return (data || []).map((a) => mapArticle(a));
+}
+
+// Admin-only: sees drafts + journal via service role. Callers must check
+// auth before calling — this function itself does not check cookies.
+export async function getArticlesAdmin(): Promise<Article[]> {
+  const { data, error } = await db
+    .from("articles")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return (data || []).map((a) => mapArticle(a));
+}
+
+// Lightweight COUNT for stats/headers — no row data transferred.
+// Scales past getArticleList(1000) once the blog grows.
+export async function getPublishedArticleCount(): Promise<number> {
+  const { count, error } = await supabase
+    .from("articles")
+    .select("id", { count: "exact", head: true })
+    .eq("published", true)
+    .neq("category", JOURNAL_CATEGORY);
+  if (error) throw error;
+  return count ?? 0;
 }
 
 export async function getArticleList(limit = 6): Promise<ArticleListItem[]> {
@@ -79,6 +105,20 @@ export async function getArticleBySlug(slug: string): Promise<Article | null> {
 
 export async function getArticleById(id: string): Promise<Article | null> {
   const { data, error } = await supabase.from("articles").select("*").eq("id", id).single();
+  if (error || !data) return null;
+  return mapArticle(data);
+}
+
+// Admin variants bypass RLS via service role so drafts are visible to
+// authenticated callers (page + API preview). Must be gated by checkAuth.
+export async function getArticleBySlugAdmin(slug: string): Promise<Article | null> {
+  const { data, error } = await db.from("articles").select("*").eq("slug", slug).single();
+  if (error || !data) return null;
+  return mapArticle(data);
+}
+
+export async function getArticleByIdAdmin(id: string): Promise<Article | null> {
+  const { data, error } = await db.from("articles").select("*").eq("id", id).single();
   if (error || !data) return null;
   return mapArticle(data);
 }
@@ -165,8 +205,9 @@ export async function updateArticle(id: string, data: Partial<Article>): Promise
 }
 
 export async function deleteArticle(id: string): Promise<boolean> {
-  const { error } = await db.from("articles").delete().eq("id", id);
-  return !error;
+  const { data, error } = await db.from("articles").delete().eq("id", id).select("id");
+  if (error) return false;
+  return (data?.length ?? 0) > 0;
 }
 
 export async function getCategories(): Promise<string[]> {
@@ -233,8 +274,9 @@ export async function createCategory(name: string): Promise<Category> {
 }
 
 export async function deleteCategory(id: string): Promise<boolean> {
-  const { error } = await db.from("categories").delete().eq("id", id);
-  return !error;
+  const { data, error } = await db.from("categories").delete().eq("id", id).select("id");
+  if (error) return false;
+  return (data?.length ?? 0) > 0;
 }
 
 export async function getRelatedArticles(slug: string, category: string, limit = 3): Promise<Article[]> {
@@ -251,14 +293,19 @@ export async function getRelatedArticles(slug: string, category: string, limit =
   if (primary.length >= limit) return primary;
   // Fallback: fill with most recent articles outside this category so the
   // section never renders empty when a category has few posts.
-  const exclude = [slug, ...primary.map((a) => a.slug)];
+  // Filter in JS instead of building a raw `not("slug","in",(...))` string,
+  // which breaks on slugs containing quotes/parens and risks injection.
+  const exclude = new Set([slug, ...primary.map((a) => a.slug)]);
   const { data: more } = await supabase
     .from("articles")
     .select("*")
     .eq("published", true)
     .neq("category", JOURNAL_CATEGORY)
-    .not("slug", "in", `(${exclude.map((s) => `"${s}"`).join(",")})`)
     .order("created_at", { ascending: false })
-    .limit(limit - primary.length);
-  return [...primary, ...(more || []).map((a) => mapArticle(a))];
+    .limit(limit * 3);
+  const extra = ((more || []) as Record<string, unknown>[])
+    .map((a) => mapArticle(a))
+    .filter((a) => !exclude.has(a.slug))
+    .slice(0, limit - primary.length);
+  return [...primary, ...extra];
 }
